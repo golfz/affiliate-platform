@@ -186,9 +186,7 @@ if [ $ERRORS -eq 0 ] && [ $WARNINGS -eq 0 ]; then
     echo "Next steps:"
     echo "  1. make init    # Initialize project (first time)"
     echo "  2. make mu      # Run database migrations"
-    echo "  3. make seed    # Seed demo data (optional)"
-    echo "  4. make swagger # Generate Swagger docs"
-    echo "  5. make start   # Start backend + frontend"
+    echo "  3. make start   # Start backend + frontend"
     exit 0
 elif [ $ERRORS -eq 0 ]; then
     echo -e "${YELLOW}⚠ $WARNINGS warning(s) found (non-critical)${NC}"
@@ -197,7 +195,6 @@ elif [ $ERRORS -eq 0 ]; then
     echo ""
     echo "Quick fixes:"
     echo "  - Run 'make init' to set up config and install dependencies"
-    echo "  - Run 'make swagger' to generate Swagger docs"
     echo "  - Run 'docker-compose up -d' if services not running"
     exit 0
 else

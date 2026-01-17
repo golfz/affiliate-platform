@@ -22,25 +22,12 @@ Affiliate Web App for Promotion & Marketplace Price Comparison (Lazada / Shopee)
 
 ## Quick Start
 
-### Prerequisites
-
-- Go 1.21+
-- Node.js 18+
-- Docker & Docker Compose
-- Make
-
-**Note**: If you have `golang-migrate` installed, ensure it's compiled with PostgreSQL driver:
-```bash
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.16.2
-```
-Or the Makefile will install it automatically when running `make mu`.
-
-### First Time Setup
+For detailed step-by-step instructions, see [QUICKSTART.md](./QUICKSTART.md).
 
 ```bash
 # 1. Clone repository
 git clone <repo-url>
-cd jonosize/project
+cd <repository-name>
 
 # 2. Initialize project (installs dependencies, starts Docker)
 make init
@@ -48,15 +35,17 @@ make init
 # 3. Run database migrations
 make mu
 
-# 4. (Optional) Seed database with demo data
-make seed
-
-# 5. Generate Swagger docs
-make swagger
-
-# 6. Start project (frontend + backend)
+# 4. Start project (frontend + backend)
 make start
 ```
+
+**Prerequisites**: Go 1.21+, Node.js 18+, Docker & Docker Compose, Make
+
+**Note**: If you have `golang-migrate` installed, ensure it's compiled with PostgreSQL driver:
+```bash
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.16.2
+```
+Or the Makefile will install it automatically when running `make mu`.
 
 ### Available Make Commands
 
@@ -64,7 +53,6 @@ make start
 make init          # Initialize project (install deps, setup config, start Docker)
 make mu            # Run database migrations up
 make md            # Run database migrations down (rollback)
-make seed          # Seed database with demo data
 make start         # Start both frontend and backend
 make start-backend # Start backend only
 make start-frontend # Start frontend only
@@ -82,8 +70,7 @@ make help          # Show all available commands
 ```
 project/
 ├── cmd/
-│   ├── api/          # API server entry point
-│   └── seed/         # Database seeding command
+│   └── api/          # API server entry point
 ├── internal/
 │   ├── api/          # HTTP handlers and routes
 │   ├── config/       # Configuration management (Viper wrapper)
@@ -94,8 +81,7 @@ project/
 │   ├── repository/   # Data access layer
 │   ├── service/      # Business logic layer
 │   ├── validator/    # Input validation utilities
-│   ├── worker/       # Background jobs
-│   └── seed/         # Seeding functions
+│   └── worker/       # Background jobs
 ├── migrations/       # SQL migrations
 ├── docs/             # Generated Swagger docs
 ├── configs/          # Configuration files
@@ -108,17 +94,9 @@ project/
 
 ## API Documentation
 
-Swagger documentation is available at:
+Swagger documentation is available at `http://localhost:8080/swagger/index.html`
 
-- **Swagger UI**: `http://localhost:8080/swagger/index.html`
-- **JSON**: `http://localhost:8080/swagger/doc.json`
-- **YAML**: `http://localhost:8080/swagger/doc.yaml`
-
-To regenerate Swagger docs:
-
-```bash
-make swagger
-```
+To regenerate Swagger docs: `make swagger`
 
 ## Configuration
 
@@ -163,42 +141,12 @@ Example configuration: `configs/config.example.json`
 
 ## Development
 
-### Backend
+See [QUICKSTART.md](./QUICKSTART.md) for detailed development instructions.
 
-```bash
-cd project
-make start-backend
-```
-
-Backend runs on `http://localhost:8080`
-
-### Frontend
-
-```bash
-cd project/apps/web
-npm install
-npm run dev
-```
-
-Frontend runs on `http://localhost:3000`
-
-### Database Migrations
-
-```bash
-# Run migrations up
-make mu
-
-# Rollback migrations
-make md
-```
-
-### Seeding
-
-```bash
-make seed
-```
-
-This populates the database with sample products, offers, campaigns, and links for development/demo purposes.
+**Quick commands**:
+- Backend: `make start-backend` (runs on `http://localhost:8080`)
+- Frontend: `make start-frontend` (runs on `http://localhost:3000`)
+- Migrations: `make mu` (up), `make md` (down)
 
 ## Testing
 

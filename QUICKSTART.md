@@ -59,7 +59,7 @@ Script นี้จะตรวจสอบ:
 
 ```bash
 git clone <repository-url>
-cd <repository-name>/project
+cd <repository-name>
 ```
 
 ## Step 2: Initialize Project (ครั้งแรกเท่านั้น)
@@ -84,23 +84,7 @@ make mu
 
 คำสั่งนี้จะสร้างตารางทั้งหมดในฐานข้อมูล
 
-## Step 4: (Optional) Seed Demo Data
-
-```bash
-make seed
-```
-
-คำสั่งนี้จะใส่ข้อมูลตัวอย่าง (products, campaigns, links) สำหรับทดสอบ
-
-## Step 5: Generate Swagger Docs
-
-```bash
-make swagger
-```
-
-คำสั่งนี้จะ generate Swagger documentation
-
-## Step 6: Start Backend และ Frontend
+## Step 4: Start Backend และ Frontend
 
 ### วิธีที่ 1: Start ทั้งหมดพร้อมกัน
 
@@ -164,7 +148,7 @@ http://localhost:3000
 http://localhost:3000/campaign/[campaign-id]
 ```
 
-(หา campaign-id จาก seed data หรือสร้างใหม่)
+(สร้าง campaign ใหม่ผ่าน Admin UI หรือ API)
 
 ### 7.4 ทดสอบ API Endpoints
 

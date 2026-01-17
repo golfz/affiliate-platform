@@ -1,4 +1,4 @@
-.PHONY: init mu md seed clean-db start start-backend start-frontend stop clean test lint swagger build help
+.PHONY: init mu md clean-db start start-backend start-frontend stop clean test lint swagger build help
 
 # Default target
 .DEFAULT_GOAL := help
@@ -62,11 +62,6 @@ md: ## Run database migrations down (rollback)
 	fi
 	@migrate -path migrations -database "$(DB_URL)" down
 	@echo "✅ Migrations rolled back!"
-
-seed: ## Seed database with demo data
-	@echo "🌱 Seeding database..."
-	@go run cmd/seed/main.go
-	@echo "✅ Database seeded!"
 
 clean-db: ## Clean all data from database (keeps schema)
 	@echo "🧹 Cleaning database..."
