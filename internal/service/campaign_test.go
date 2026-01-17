@@ -16,6 +16,238 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+// MockCampaignRepository is a mock implementation of CampaignRepositoryInterface
+type MockCampaignRepository struct {
+	mock.Mock
+}
+
+func (m *MockCampaignRepository) Create(ctx context.Context, campaign *model.Campaign) error {
+	args := m.Called(ctx, campaign)
+	return args.Error(0)
+}
+
+func (m *MockCampaignRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.Campaign, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Campaign), args.Error(1)
+}
+
+func (m *MockCampaignRepository) FindAll(ctx context.Context, limit, offset int) ([]*model.Campaign, int64, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*model.Campaign), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockCampaignRepository) Update(ctx context.Context, campaign *model.Campaign) error {
+	args := m.Called(ctx, campaign)
+	return args.Error(0)
+}
+
+func (m *MockCampaignRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockCampaignRepository) AddProducts(ctx context.Context, campaignID uuid.UUID, productIDs []uuid.UUID) error {
+	args := m.Called(ctx, campaignID, productIDs)
+	return args.Error(0)
+}
+
+func (m *MockCampaignRepository) RemoveProducts(ctx context.Context, campaignID uuid.UUID, productIDs []uuid.UUID) error {
+	args := m.Called(ctx, campaignID, productIDs)
+	return args.Error(0)
+}
+
+func (m *MockCampaignRepository) UpdateCampaignProducts(ctx context.Context, campaignID uuid.UUID, productIDs []uuid.UUID) error {
+	args := m.Called(ctx, campaignID, productIDs)
+	return args.Error(0)
+}
+
+// MockLinkRepository is a mock implementation of LinkRepositoryInterface
+type MockLinkRepository struct {
+	mock.Mock
+}
+
+func (m *MockLinkRepository) Create(ctx context.Context, link *model.Link) error {
+	args := m.Called(ctx, link)
+	return args.Error(0)
+}
+
+func (m *MockLinkRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.Link, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Link), args.Error(1)
+}
+
+func (m *MockLinkRepository) FindByShortCode(ctx context.Context, shortCode string) (*model.Link, error) {
+	args := m.Called(ctx, shortCode)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Link), args.Error(1)
+}
+
+func (m *MockLinkRepository) FindByProductIDAndCampaignID(ctx context.Context, productID, campaignID uuid.UUID) ([]*model.Link, error) {
+	args := m.Called(ctx, productID, campaignID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*model.Link), args.Error(1)
+}
+
+func (m *MockLinkRepository) FindByCampaignID(ctx context.Context, campaignID uuid.UUID) ([]*model.Link, error) {
+	args := m.Called(ctx, campaignID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*model.Link), args.Error(1)
+}
+
+func (m *MockLinkRepository) Update(ctx context.Context, link *model.Link) error {
+	args := m.Called(ctx, link)
+	return args.Error(0)
+}
+
+func (m *MockLinkRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+func (m *MockLinkRepository) DeleteByProductIDAndCampaignID(ctx context.Context, productID, campaignID uuid.UUID) error {
+	args := m.Called(ctx, productID, campaignID)
+	return args.Error(0)
+}
+
+func (m *MockLinkRepository) DeleteByCampaignIDAndNotInProducts(ctx context.Context, campaignID uuid.UUID, productIDs []uuid.UUID) error {
+	args := m.Called(ctx, campaignID, productIDs)
+	return args.Error(0)
+}
+
+func (m *MockLinkRepository) ShortCodeExists(ctx context.Context, shortCode string) (bool, error) {
+	args := m.Called(ctx, shortCode)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockLinkRepository) CountWithFilters(ctx context.Context, campaignID *uuid.UUID, marketplace *string) (int64, error) {
+	args := m.Called(ctx, campaignID, marketplace)
+	return args.Get(0).(int64), args.Error(1)
+}
+
+// MockOfferRepository is a mock implementation of OfferRepositoryInterface
+type MockOfferRepository struct {
+	mock.Mock
+}
+
+func (m *MockOfferRepository) Create(ctx context.Context, offer *model.Offer) error {
+	args := m.Called(ctx, offer)
+	return args.Error(0)
+}
+
+func (m *MockOfferRepository) FindByProductID(ctx context.Context, productID uuid.UUID) ([]*model.Offer, error) {
+	args := m.Called(ctx, productID)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*model.Offer), args.Error(1)
+}
+
+func (m *MockOfferRepository) FindByProductIDAndMarketplace(ctx context.Context, productID uuid.UUID, marketplace model.Marketplace) (*model.Offer, error) {
+	args := m.Called(ctx, productID, marketplace)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Offer), args.Error(1)
+}
+
+func (m *MockOfferRepository) Update(ctx context.Context, offer *model.Offer) error {
+	args := m.Called(ctx, offer)
+	return args.Error(0)
+}
+
+func (m *MockOfferRepository) Upsert(ctx context.Context, offer *model.Offer) error {
+	args := m.Called(ctx, offer)
+	return args.Error(0)
+}
+
+func (m *MockOfferRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+// MockProductRepository is a mock implementation of ProductRepositoryInterface
+type MockProductRepository struct {
+	mock.Mock
+}
+
+func (m *MockProductRepository) Create(ctx context.Context, product *model.Product) error {
+	args := m.Called(ctx, product)
+	return args.Error(0)
+}
+
+func (m *MockProductRepository) FindByID(ctx context.Context, id uuid.UUID) (*model.Product, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*model.Product), args.Error(1)
+}
+
+func (m *MockProductRepository) FindAll(ctx context.Context, limit, offset int) ([]*model.Product, int64, error) {
+	args := m.Called(ctx, limit, offset)
+	if args.Get(0) == nil {
+		return nil, args.Get(1).(int64), args.Error(2)
+	}
+	return args.Get(0).([]*model.Product), args.Get(1).(int64), args.Error(2)
+}
+
+func (m *MockProductRepository) Update(ctx context.Context, product *model.Product) error {
+	args := m.Called(ctx, product)
+	return args.Error(0)
+}
+
+func (m *MockProductRepository) Delete(ctx context.Context, id uuid.UUID) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
+// MockConfig is a mock implementation of config.Config
+type MockConfig struct {
+	apiBaseURL string
+}
+
+func (m *MockConfig) GetDatabaseWriteHost() string           { return "" }
+func (m *MockConfig) GetDatabaseWritePort() int              { return 0 }
+func (m *MockConfig) GetDatabaseWriteUser() string           { return "" }
+func (m *MockConfig) GetDatabaseWritePassword() string       { return "" }
+func (m *MockConfig) GetDatabaseWriteDBName() string         { return "" }
+func (m *MockConfig) GetDatabaseWriteSSLMode() string        { return "" }
+func (m *MockConfig) GetDatabaseReadHost() string            { return "" }
+func (m *MockConfig) GetDatabaseReadPort() int               { return 0 }
+func (m *MockConfig) GetDatabaseReadUser() string            { return "" }
+func (m *MockConfig) GetDatabaseReadPassword() string        { return "" }
+func (m *MockConfig) GetDatabaseReadDBName() string          { return "" }
+func (m *MockConfig) GetDatabaseReadSSLMode() string         { return "" }
+func (m *MockConfig) GetDatabaseMaxOpenConns() int           { return 0 }
+func (m *MockConfig) GetDatabaseMaxIdleConns() int           { return 0 }
+func (m *MockConfig) GetDatabaseConnMaxLifetime() int        { return 0 }
+func (m *MockConfig) GetDatabaseWriteURL() string            { return "" }
+func (m *MockConfig) GetDatabaseReadURL() string             { return "" }
+func (m *MockConfig) GetRedisURL() string                    { return "" }
+func (m *MockConfig) GetServerPort() string                  { return "" }
+func (m *MockConfig) GetServerHost() string                  { return "" }
+func (m *MockConfig) GetAPIBaseURL() string                  { return m.apiBaseURL }
+func (m *MockConfig) GetPriceRefreshCron() string            { return "" }
+func (m *MockConfig) GetMockMode() bool                      { return false }
+func (m *MockConfig) GetBasicAuthUsername() string           { return "" }
+func (m *MockConfig) GetBasicAuthPassword() string           { return "" }
+func (m *MockConfig) GetAllSettings() map[string]interface{} { return nil }
+
 // CampaignServiceTestSuite is the test suite for CampaignService
 type CampaignServiceTestSuite struct {
 	suite.Suite
