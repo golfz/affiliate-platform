@@ -10,6 +10,7 @@ import (
 	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
+	"github.com/jonosize/affiliate-platform/internal/model"
 	"github.com/jonosize/affiliate-platform/internal/repository"
 )
 
@@ -108,6 +109,54 @@ func (s *CampaignPublicService) GetPublicCampaign(ctx context.Context, campaignI
 			s.logger.Error("Failed to get links", logger.Error(err))
 		}
 
+		// If no links exist, create them automatically
+		if len(links) == 0 && len(offers) > 0 {
+			s.logger.Info("No links found, creating links automatically", logger.String("product_id", product.ID.String()), logger.String("campaign_id", campaign.ID.String()))
+			// Create links for each marketplace that has an offer
+			for _, offer := range offers {
+				// Generate unique short code
+				shortCode, err := s.generateUniqueShortCode(ctx)
+				if err != nil {
+					s.logger.Warn("Failed to generate short code", logger.Error(err))
+					continue
+				}
+
+				// Build target URL with UTM parameters
+				baseURL := offer.MarketplaceProductURL
+				utmSource := "affiliate"
+				utmMedium := "affiliate"
+				utmCampaign := campaign.UTMCampaign
+
+				targetURL, err := buildTargetURL(baseURL, utmCampaign, utmSource, utmMedium)
+				if err != nil {
+					s.logger.Warn("Failed to build target URL", logger.Error(err))
+					continue
+				}
+
+				// Create link
+				link := &model.Link{
+					ProductID:   product.ID,
+					CampaignID:  campaign.ID,
+					Marketplace: offer.Marketplace,
+					ShortCode:   shortCode,
+					TargetURL:   targetURL,
+				}
+
+				if err := s.linkRepo.Create(ctx, link); err != nil {
+					s.logger.Warn("Failed to create link", logger.Error(err))
+					continue
+				}
+				links = append(links, link)
+			}
+			// Re-fetch links to get all created links
+			if len(links) > 0 {
+				links, err = s.linkRepo.FindByProductIDAndCampaignID(ctx, product.ID, campaign.ID)
+				if err != nil {
+					s.logger.Warn("Failed to re-fetch links after creation", logger.Error(err))
+				}
+			}
+		}
+
 		// Convert links to DTO
 		productLinks := make([]dto.ProductLink, len(links))
 		apiBaseURL := s.cfg.GetAPIBaseURL()
@@ -131,4 +180,26 @@ func (s *CampaignPublicService) GetPublicCampaign(ctx context.Context, campaignI
 	}
 
 	return response, nil
+}
+
+// generateUniqueShortCode generates a unique short code, retrying on collision
+func (s *CampaignPublicService) generateUniqueShortCode(ctx context.Context) (string, error) {
+	maxRetries := 10
+	for i := 0; i < maxRetries; i++ {
+		code, err := generateShortCode()
+		if err != nil {
+			return "", err
+		}
+
+		// Check uniqueness
+		exists, err := s.linkRepo.ShortCodeExists(ctx, code)
+		if err != nil {
+			return "", err
+		}
+		if !exists {
+			return code, nil
+		}
+	}
+
+	return "", fmt.Errorf("failed to generate unique short code after %d retries", maxRetries)
 }

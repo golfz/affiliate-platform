@@ -84,3 +84,28 @@ func (r *CampaignRepository) AddProducts(ctx context.Context, campaignID uuid.UU
 	}
 	return nil
 }
+
+// RemoveProducts removes products from a campaign (uses write DB)
+func (r *CampaignRepository) RemoveProducts(ctx context.Context, campaignID uuid.UUID, productIDs []uuid.UUID) error {
+	return r.db.Write.WithContext(ctx).
+		Where("campaign_id = ? AND product_id IN ?", campaignID, productIDs).
+		Delete(&model.CampaignProduct{}).Error
+}
+
+// UpdateCampaignProducts replaces all products in a campaign (uses write DB)
+// This removes all existing products and adds the new ones
+func (r *CampaignRepository) UpdateCampaignProducts(ctx context.Context, campaignID uuid.UUID, productIDs []uuid.UUID) error {
+	// Remove all existing products
+	if err := r.db.Write.WithContext(ctx).
+		Where("campaign_id = ?", campaignID).
+		Delete(&model.CampaignProduct{}).Error; err != nil {
+		return err
+	}
+
+	// Add new products
+	if len(productIDs) > 0 {
+		return r.AddProducts(ctx, campaignID, productIDs)
+	}
+
+	return nil
+}

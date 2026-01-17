@@ -103,45 +103,59 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 	// Fetch offers from adapters
 	offers := make([]*model.Offer, 0)
 
-	// Fetch offer from the adapter that provided the product
-	offerData, err := adapter.FetchOffer(ctx, productData.MarketplaceProductURL)
-	if err == nil {
-		offer := &model.Offer{
-			ProductID:             product.ID,
-			Marketplace:           model.Marketplace(marketplace),
-			StoreName:             offerData.StoreName,
-			Price:                 offerData.Price,
-			MarketplaceProductURL: offerData.MarketplaceProductURL,
-			LastCheckedAt:         time.Now(),
+	// Determine which marketplaces to fetch offers for
+	// If specific URLs are provided, use those; otherwise try both
+	hasLazadaURL := req.LazadaURL != ""
+	hasShopeeURL := req.ShopeeURL != ""
+
+	// Fetch Lazada offer if:
+	// 1. Lazada URL is explicitly provided, OR
+	// 2. Primary marketplace is Lazada and no explicit URLs are provided
+	if hasLazadaURL || (marketplace == adapters.MarketplaceLazada && !hasLazadaURL && !hasShopeeURL) {
+		var lazadaOfferURL string
+		if hasLazadaURL {
+			lazadaOfferURL = req.LazadaURL
+		} else {
+			lazadaOfferURL = productData.MarketplaceProductURL
 		}
-		offers = append(offers, offer)
+
+		offerData, err := lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
+		if err == nil {
+			offer := &model.Offer{
+				ProductID:             product.ID,
+				Marketplace:           model.Marketplace(adapters.MarketplaceLazada),
+				StoreName:             offerData.StoreName,
+				Price:                 offerData.Price,
+				MarketplaceProductURL: offerData.MarketplaceProductURL,
+				LastCheckedAt:         time.Now(),
+			}
+			offers = append(offers, offer)
+		}
 	}
 
-	// Try to fetch from the other marketplace as well
-	var otherAdapter adapters.MarketplaceAdapter
-	if marketplace == adapters.MarketplaceLazada {
-		otherAdapter = shopeeAdapter
-	} else {
-		otherAdapter = lazadaAdapter
-	}
-
-	// Try to fetch offer from other marketplace (use a generic URL pattern)
-	otherOfferData, err := otherAdapter.FetchOffer(ctx, productData.MarketplaceProductURL)
-	if err == nil {
-		otherMarketplace := adapters.MarketplaceLazada
-		if marketplace == adapters.MarketplaceLazada {
-			otherMarketplace = adapters.MarketplaceShopee
+	// Fetch Shopee offer if:
+	// 1. Shopee URL is explicitly provided, OR
+	// 2. Primary marketplace is Shopee and no explicit URLs are provided
+	if hasShopeeURL || (marketplace == adapters.MarketplaceShopee && !hasLazadaURL && !hasShopeeURL) {
+		var shopeeOfferURL string
+		if hasShopeeURL {
+			shopeeOfferURL = req.ShopeeURL
+		} else {
+			shopeeOfferURL = productData.MarketplaceProductURL
 		}
 
-		offer := &model.Offer{
-			ProductID:             product.ID,
-			Marketplace:           model.Marketplace(otherMarketplace),
-			StoreName:             otherOfferData.StoreName,
-			Price:                 otherOfferData.Price,
-			MarketplaceProductURL: otherOfferData.MarketplaceProductURL,
-			LastCheckedAt:         time.Now(),
+		offerData, err := shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
+		if err == nil {
+			offer := &model.Offer{
+				ProductID:             product.ID,
+				Marketplace:           model.Marketplace(adapters.MarketplaceShopee),
+				StoreName:             offerData.StoreName,
+				Price:                 offerData.Price,
+				MarketplaceProductURL: offerData.MarketplaceProductURL,
+				LastCheckedAt:         time.Now(),
+			}
+			offers = append(offers, offer)
 		}
-		offers = append(offers, offer)
 	}
 
 	// Save offers

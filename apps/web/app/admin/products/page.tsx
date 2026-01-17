@@ -5,12 +5,53 @@ import AdminLayout from '@/components/AdminLayout'
 import { createProduct, getAllProducts, deleteProduct, type ProductResponse } from '@/lib/api'
 
 export default function ProductsPage() {
-  const [url, setUrl] = useState('')
+  const [lazadaUrl, setLazadaUrl] = useState('')
+  const [shopeeUrl, setShopeeUrl] = useState('')
+  const [productTitle, setProductTitle] = useState('') // For future use - currently disabled
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [urlErrors, setUrlErrors] = useState<{ lazada?: string; shopee?: string }>({})
   const [products, setProducts] = useState<ProductResponse[]>([])
   const [loadingProducts, setLoadingProducts] = useState(true)
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null)
+
+  // Validate URL matches platform
+  const validateUrl = (url: string, platform: 'lazada' | 'shopee'): string | null => {
+    if (!url) return null // Empty URL is OK (optional)
+    
+    try {
+      const urlObj = new URL(url.toLowerCase())
+      const hostname = urlObj.hostname.toLowerCase()
+      
+      if (platform === 'lazada') {
+        if (!hostname.includes('lazada')) {
+          return 'URL must be from Lazada (lazada.co.th, lazada.com, etc.)'
+        }
+      } else if (platform === 'shopee') {
+        if (!hostname.includes('shopee')) {
+          return 'URL must be from Shopee (shopee.co.th, shopee.com, etc.)'
+        }
+      }
+      
+      return null
+    } catch {
+      return 'Invalid URL format'
+    }
+  }
+
+  const handleLazadaUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setLazadaUrl(value)
+    const error = validateUrl(value, 'lazada')
+    setUrlErrors(prev => ({ ...prev, lazada: error || undefined }))
+  }
+
+  const handleShopeeUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    setShopeeUrl(value)
+    const error = validateUrl(value, 'shopee')
+    setUrlErrors(prev => ({ ...prev, shopee: error || undefined }))
+  }
 
   // Fetch products on mount
   useEffect(() => {
@@ -34,15 +75,46 @@ export default function ProductsPage() {
     setLoading(true)
     setError(null)
 
-    try {
-      const product = await createProduct({
-        source: url,
-        sourceType: 'url',
+    // Validate at least one URL is provided
+    if (!lazadaUrl && !shopeeUrl) {
+      setError('Please provide at least one URL (Lazada or Shopee)')
+      setLoading(false)
+      return
+    }
+
+    // Validate URLs
+    const lazadaError = validateUrl(lazadaUrl, 'lazada')
+    const shopeeError = validateUrl(shopeeUrl, 'shopee')
+    
+    if (lazadaError || shopeeError) {
+      setUrlErrors({
+        lazada: lazadaError || undefined,
+        shopee: shopeeError || undefined,
       })
+      setError('Please fix URL validation errors')
+      setLoading(false)
+      return
+    }
+
+    try {
+      // Determine primary URL (prefer Lazada if both are provided)
+      const primaryUrl = lazadaUrl || shopeeUrl
+      
+      // Create product with both URLs if provided
+      const product = await createProduct({
+        source: primaryUrl,
+        sourceType: 'url',
+        lazada_url: lazadaUrl || undefined,
+        shopee_url: shopeeUrl || undefined,
+      })
+      
       // Refresh products list to get offers
       const productsList = await getAllProducts()
       setProducts(productsList)
-      setUrl('')
+      // Clear form
+      setLazadaUrl('')
+      setShopeeUrl('')
+      setUrlErrors({})
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create product')
     } finally {
@@ -78,19 +150,69 @@ export default function ProductsPage() {
           <h2 className="text-xl font-semibold mb-4 text-gray-900">Add Product</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="url" className="block text-sm font-medium text-gray-700 mb-2">
-                Product URL (Lazada/Shopee)
+              <label htmlFor="product_title" className="block text-sm font-medium text-gray-700 mb-2">
+                Product Title <span className="text-xs text-gray-500 font-normal">(Future feature - disabled)</span>
               </label>
               <input
-                type="url"
-                id="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.lazada.co.th/products/..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white"
-                required
+                type="text"
+                id="product_title"
+                value={productTitle}
+                onChange={(e) => setProductTitle(e.target.value)}
+                placeholder="Enter product title (optional override)"
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-100 text-gray-500 cursor-not-allowed"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                This field will allow manual override of product title in the future
+              </p>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="lazada_url" className="block text-sm font-medium text-gray-700 mb-2">
+                  Lazada Product URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  id="lazada_url"
+                  value={lazadaUrl}
+                  onChange={handleLazadaUrlChange}
+                  placeholder="https://www.lazada.co.th/products/..."
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white ${
+                    urlErrors.lazada ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {urlErrors.lazada && (
+                  <p className="mt-1 text-xs text-red-600">{urlErrors.lazada}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter Lazada product URL (optional if Shopee URL is provided, or provide both)
+                </p>
+              </div>
+              <div>
+                <label htmlFor="shopee_url" className="block text-sm font-medium text-gray-700 mb-2">
+                  Shopee Product URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  id="shopee_url"
+                  value={shopeeUrl}
+                  onChange={handleShopeeUrlChange}
+                  placeholder="https://shopee.co.th/product/..."
+                  className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-gray-900 bg-white ${
+                    urlErrors.shopee ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-gray-300'
+                  }`}
+                />
+                {urlErrors.shopee && (
+                  <p className="mt-1 text-xs text-red-600">{urlErrors.shopee}</p>
+                )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Enter Shopee product URL (optional if Lazada URL is provided, or provide both)
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 -mt-2">
+              <span className="text-red-500">*</span> At least one URL is required. You can provide both URLs to fetch offers from both marketplaces.
+            </p>
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
                 {error}

@@ -65,6 +65,13 @@ definitions:
       name:
         example: Summer Deal 2025
         type: string
+      product_ids:
+        description: Product IDs in this campaign
+        example:
+        - '["123e4567-e89b-12d3-a456-426614174000"]'
+        items:
+          type: string
+        type: array
       start_at:
         example: "2025-06-01T00:00:00Z"
         type: string
@@ -131,6 +138,13 @@ definitions:
     type: object
   dto.CreateProductRequest:
     properties:
+      lazada_url:
+        description: 'Optional: specific URLs for each marketplace'
+        example: https://www.lazada.co.th/products/example-i123456.html
+        type: string
+      shopee_url:
+        example: https://shopee.co.th/product/123456
+        type: string
       source:
         example: https://www.lazada.co.th/products/example-i123456.html
         type: string
@@ -157,6 +171,10 @@ definitions:
       marketplace_stats:
         items:
           $ref: '#/definitions/dto.MarketplaceStat'
+        type: array
+      recent_clicks:
+        items:
+          $ref: '#/definitions/dto.RecentClick'
         type: array
       top_products:
         items:
@@ -272,6 +290,27 @@ definitions:
         example: Product Title
         type: string
     type: object
+  dto.RecentClick:
+    properties:
+      campaign_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      campaign_name:
+        example: Summer Deal 2025
+        type: string
+      datetime:
+        example: "2025-01-15T10:30:00Z"
+        type: string
+      marketplace:
+        example: lazada
+        type: string
+      product_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      product_name:
+        example: Product Title
+        type: string
+    type: object
   dto.TopProduct:
     properties:
       clicks:
@@ -285,6 +324,36 @@ definitions:
         type: string
       product_name:
         example: Product Title
+        type: string
+    type: object
+  dto.UpdateCampaignProductsRequest:
+    properties:
+      product_ids:
+        example:
+        - '["123e4567-e89b-12d3-a456-426614174000"]'
+        items:
+          type: string
+        type: array
+    type: object
+  dto.UpdateCampaignRequest:
+    properties:
+      end_at:
+        example: "2025-08-31T23:59:59Z"
+        type: string
+      name:
+        example: Summer Deal 2025
+        type: string
+      product_ids:
+        example:
+        - '["123e4567-e89b-12d3-a456-426614174000"]'
+        items:
+          type: string
+        type: array
+      start_at:
+        example: "2025-06-01T00:00:00Z"
+        type: string
+      utm_campaign:
+        example: summer_2025
         type: string
     type: object
 host: localhost:8080
@@ -408,6 +477,118 @@ paths:
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       summary: Delete a campaign
+      tags:
+      - campaigns
+    get:
+      consumes:
+      - application/json
+      description: Get campaign details including product IDs
+      parameters:
+      - description: Campaign ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Campaign retrieved successfully
+          schema:
+            $ref: '#/definitions/dto.CampaignResponse'
+        "400":
+          description: Invalid campaign ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Campaign not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get a campaign by ID
+      tags:
+      - campaigns
+    patch:
+      consumes:
+      - application/json
+      description: Update campaign details (name, utm_campaign, dates, products)
+      parameters:
+      - description: Campaign ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Campaign update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Campaign updated successfully
+          schema:
+            $ref: '#/definitions/dto.CampaignResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Campaign not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Update a campaign
+      tags:
+      - campaigns
+  /api/campaigns/{id}/products:
+    patch:
+      consumes:
+      - application/json
+      description: Replace all products in a campaign with the provided list
+      parameters:
+      - description: Campaign ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Products update request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateCampaignProductsRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Campaign products updated successfully
+          schema:
+            $ref: '#/definitions/dto.CampaignResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Campaign not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Update products in a campaign
       tags:
       - campaigns
   /api/campaigns/{id}/public:

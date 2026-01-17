@@ -10,6 +10,9 @@ import (
 type CreateProductRequest struct {
 	Source     string `json:"source" validate:"required" example:"https://www.lazada.co.th/products/example-i123456.html"`
 	SourceType string `json:"sourceType" validate:"required,oneof=url sku" example:"url"`
+	// Optional: specific URLs for each marketplace
+	LazadaURL string `json:"lazada_url,omitempty" example:"https://www.lazada.co.th/products/example-i123456.html"`
+	ShopeeURL string `json:"shopee_url,omitempty" example:"https://shopee.co.th/product/123456"`
 }
 
 // ProductResponse represents a product response

@@ -40,7 +40,10 @@ func SetupRoutes(e *echo.Echo, db *database.DB, cfg config.Config, log logger.Lo
 
 		// Campaigns
 		adminGroup.GET("/campaigns", campaignHandler.GetAllCampaigns)
+		adminGroup.GET("/campaigns/:id", campaignHandler.GetCampaign)
 		adminGroup.POST("/campaigns", campaignHandler.CreateCampaign)
+		adminGroup.PATCH("/campaigns/:id", campaignHandler.UpdateCampaign)
+		adminGroup.PATCH("/campaigns/:id/products", campaignHandler.UpdateCampaignProducts)
 		adminGroup.DELETE("/campaigns/:id", campaignHandler.DeleteCampaign)
 
 		// Links

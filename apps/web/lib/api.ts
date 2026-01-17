@@ -3,6 +3,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8
 export interface CreateProductRequest {
   source: string;
   sourceType: 'url' | 'sku';
+  lazada_url?: string;
+  shopee_url?: string;
 }
 
 export interface ProductResponse {
@@ -38,6 +40,14 @@ export interface CreateCampaignRequest {
   product_ids?: string[];
 }
 
+export interface UpdateCampaignRequest {
+  name?: string;
+  utm_campaign?: string;
+  start_at?: string;
+  end_at?: string;
+  product_ids?: string[];
+}
+
 export interface CampaignResponse {
   id: string;
   name: string;
@@ -45,6 +55,7 @@ export interface CampaignResponse {
   start_at: string;
   end_at: string;
   created_at: string;
+  product_ids?: string[]; // Product IDs in this campaign
 }
 
 export interface CampaignPublicResponse {
@@ -165,6 +176,10 @@ export async function getAllCampaigns(limit?: number, offset?: number): Promise<
   return apiRequest<CampaignResponse[]>(`/api/campaigns${query ? `?${query}` : ''}`);
 }
 
+export async function getCampaign(campaignId: string): Promise<CampaignResponse> {
+  return apiRequest<CampaignResponse>(`/api/campaigns/${campaignId}`);
+}
+
 export async function createCampaign(data: CreateCampaignRequest): Promise<CampaignResponse> {
   return apiRequest<CampaignResponse>('/api/campaigns', {
     method: 'POST',
@@ -174,6 +189,20 @@ export async function createCampaign(data: CreateCampaignRequest): Promise<Campa
 
 export async function getPublicCampaign(campaignId: string): Promise<CampaignPublicResponse> {
   return apiRequest<CampaignPublicResponse>(`/api/campaigns/${campaignId}/public`);
+}
+
+export async function updateCampaign(campaignId: string, data: UpdateCampaignRequest): Promise<CampaignResponse> {
+  return apiRequest<CampaignResponse>(`/api/campaigns/${campaignId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updateCampaignProducts(campaignId: string, productIds: string[]): Promise<CampaignResponse> {
+  return apiRequest<CampaignResponse>(`/api/campaigns/${campaignId}/products`, {
+    method: 'PATCH',
+    body: JSON.stringify({ product_ids: productIds }),
+  });
 }
 
 export async function deleteCampaign(campaignId: string): Promise<void> {

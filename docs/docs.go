@@ -140,6 +140,55 @@ const docTemplate = `{
             }
         },
         "/api/campaigns/{id}": {
+            "get": {
+                "description": "Get campaign details including product IDs",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "campaigns"
+                ],
+                "summary": "Get a campaign by ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Campaign retrieved successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CampaignResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid campaign ID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Campaign not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Delete a campaign and all related data (campaign products, links, clicks)",
                 "consumes": [
@@ -168,6 +217,124 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid campaign ID",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Campaign not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "Update campaign details (name, utm_campaign, dates, products)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "campaigns"
+                ],
+                "summary": "Update a campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Campaign update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCampaignRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Campaign updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CampaignResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Campaign not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/api/campaigns/{id}/products": {
+            "patch": {
+                "description": "Replace all products in a campaign with the provided list",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "campaigns"
+                ],
+                "summary": "Update products in a campaign",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Campaign ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Products update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateCampaignProductsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Campaign products updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.CampaignResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -666,6 +833,16 @@ const docTemplate = `{
                     "type": "string",
                     "example": "Summer Deal 2025"
                 },
+                "product_ids": {
+                    "description": "Product IDs in this campaign",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"123e4567-e89b-12d3-a456-426614174000\"]"
+                    ]
+                },
                 "start_at": {
                     "type": "string",
                     "example": "2025-06-01T00:00:00Z"
@@ -762,6 +939,15 @@ const docTemplate = `{
                 "sourceType"
             ],
             "properties": {
+                "lazada_url": {
+                    "description": "Optional: specific URLs for each marketplace",
+                    "type": "string",
+                    "example": "https://www.lazada.co.th/products/example-i123456.html"
+                },
+                "shopee_url": {
+                    "type": "string",
+                    "example": "https://shopee.co.th/product/123456"
+                },
                 "source": {
                     "type": "string",
                     "example": "https://www.lazada.co.th/products/example-i123456.html"
@@ -794,6 +980,12 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/dto.MarketplaceStat"
+                    }
+                },
+                "recent_clicks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.RecentClick"
                     }
                 },
                 "top_products": {
@@ -958,6 +1150,35 @@ const docTemplate = `{
                 }
             }
         },
+        "dto.RecentClick": {
+            "type": "object",
+            "properties": {
+                "campaign_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "campaign_name": {
+                    "type": "string",
+                    "example": "Summer Deal 2025"
+                },
+                "datetime": {
+                    "type": "string",
+                    "example": "2025-01-15T10:30:00Z"
+                },
+                "marketplace": {
+                    "type": "string",
+                    "example": "lazada"
+                },
+                "product_id": {
+                    "type": "string",
+                    "example": "123e4567-e89b-12d3-a456-426614174000"
+                },
+                "product_name": {
+                    "type": "string",
+                    "example": "Product Title"
+                }
+            }
+        },
         "dto.TopProduct": {
             "type": "object",
             "properties": {
@@ -976,6 +1197,50 @@ const docTemplate = `{
                 "product_name": {
                     "type": "string",
                     "example": "Product Title"
+                }
+            }
+        },
+        "dto.UpdateCampaignProductsRequest": {
+            "type": "object",
+            "properties": {
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"123e4567-e89b-12d3-a456-426614174000\"]"
+                    ]
+                }
+            }
+        },
+        "dto.UpdateCampaignRequest": {
+            "type": "object",
+            "properties": {
+                "end_at": {
+                    "type": "string",
+                    "example": "2025-08-31T23:59:59Z"
+                },
+                "name": {
+                    "type": "string",
+                    "example": "Summer Deal 2025"
+                },
+                "product_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    },
+                    "example": [
+                        "[\"123e4567-e89b-12d3-a456-426614174000\"]"
+                    ]
+                },
+                "start_at": {
+                    "type": "string",
+                    "example": "2025-06-01T00:00:00Z"
+                },
+                "utm_campaign": {
+                    "type": "string",
+                    "example": "summer_2025"
                 }
             }
         }

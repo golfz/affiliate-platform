@@ -71,3 +71,35 @@ func (r *LinkRepository) Update(ctx context.Context, link *model.Link) error {
 func (r *LinkRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	return r.db.Write.WithContext(ctx).Delete(&model.Link{}, "id = ?", id).Error
 }
+
+// FindByCampaignID finds all links for a campaign (uses read DB)
+func (r *LinkRepository) FindByCampaignID(ctx context.Context, campaignID uuid.UUID) ([]*model.Link, error) {
+	var links []*model.Link
+	err := r.db.Read.WithContext(ctx).
+		Where("campaign_id = ?", campaignID).
+		Find(&links).Error
+	if err != nil {
+		return nil, err
+	}
+	return links, nil
+}
+
+// DeleteByProductIDAndCampaignID deletes links for a specific product in a campaign (uses write DB)
+func (r *LinkRepository) DeleteByProductIDAndCampaignID(ctx context.Context, productID, campaignID uuid.UUID) error {
+	return r.db.Write.WithContext(ctx).
+		Where("product_id = ? AND campaign_id = ?", productID, campaignID).
+		Delete(&model.Link{}).Error
+}
+
+// DeleteByCampaignIDAndNotInProducts deletes links for products not in the provided list (uses write DB)
+func (r *LinkRepository) DeleteByCampaignIDAndNotInProducts(ctx context.Context, campaignID uuid.UUID, productIDs []uuid.UUID) error {
+	if len(productIDs) == 0 {
+		// If no products, delete all links for this campaign
+		return r.db.Write.WithContext(ctx).
+			Where("campaign_id = ?", campaignID).
+			Delete(&model.Link{}).Error
+	}
+	return r.db.Write.WithContext(ctx).
+		Where("campaign_id = ? AND product_id NOT IN ?", campaignID, productIDs).
+		Delete(&model.Link{}).Error
+}

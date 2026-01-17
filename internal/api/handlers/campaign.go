@@ -120,6 +120,53 @@ func (h *CampaignHandler) GetAllCampaigns(c echo.Context) error {
 	return c.JSON(http.StatusOK, campaigns)
 }
 
+// GetCampaign handles GET /api/campaigns/:id
+// @Summary Get a campaign by ID
+// @Description Get campaign details including product IDs
+// @Tags campaigns
+// @Accept json
+// @Produce json
+// @Param id path string true "Campaign ID" format(uuid)
+// @Success 200 {object} dto.CampaignResponse "Campaign retrieved successfully"
+// @Failure 400 {object} dto.ErrorResponse "Invalid campaign ID"
+// @Failure 404 {object} dto.ErrorResponse "Campaign not found"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Router /api/campaigns/{id} [get]
+func (h *CampaignHandler) GetCampaign(c echo.Context) error {
+	campaignIDStr := c.Param("id")
+	campaignID, err := uuid.Parse(campaignIDStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid Input",
+			Message: "Invalid campaign ID format",
+			Code:    "INVALID_INPUT",
+		})
+	}
+
+	// Get campaign
+	campaign, err := h.service.GetCampaignResponse(c.Request().Context(), campaignID)
+	if err != nil {
+		h.logger.Error("Failed to get campaign", logger.String("error", err.Error()))
+
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "campaign not found") {
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Error:   "Campaign Not Found",
+				Message: "Campaign with the specified ID was not found",
+				Code:    "CAMPAIGN_NOT_FOUND",
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "Internal Server Error",
+			Message: "Failed to get campaign",
+			Code:    "INTERNAL_ERROR",
+		})
+	}
+
+	return c.JSON(http.StatusOK, campaign)
+}
+
 // DeleteCampaign handles DELETE /api/campaigns/:id
 // @Summary Delete a campaign
 // @Description Delete a campaign and all related data (campaign products, links, clicks)
@@ -165,4 +212,137 @@ func (h *CampaignHandler) DeleteCampaign(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+// UpdateCampaign handles PATCH /api/campaigns/:id
+// @Summary Update a campaign
+// @Description Update campaign details (name, utm_campaign, dates, products)
+// @Tags campaigns
+// @Accept json
+// @Produce json
+// @Param id path string true "Campaign ID" format(uuid)
+// @Param request body dto.UpdateCampaignRequest true "Campaign update request"
+// @Success 200 {object} dto.CampaignResponse "Campaign updated successfully"
+// @Failure 400 {object} dto.ErrorResponse "Invalid request"
+// @Failure 404 {object} dto.ErrorResponse "Campaign not found"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Router /api/campaigns/{id} [patch]
+func (h *CampaignHandler) UpdateCampaign(c echo.Context) error {
+	campaignIDStr := c.Param("id")
+	campaignID, err := uuid.Parse(campaignIDStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid Input",
+			Message: "Invalid campaign ID format",
+			Code:    "INVALID_INPUT",
+		})
+	}
+
+	var req dto.UpdateCampaignRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid Input",
+			Message: "Invalid request body",
+			Code:    "INVALID_INPUT",
+		})
+	}
+
+	// Update campaign
+	campaign, err := h.service.UpdateCampaign(c.Request().Context(), campaignID, req)
+	if err != nil {
+		h.logger.Error("Failed to update campaign", logger.String("error", err.Error()))
+
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "campaign not found") {
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Error:   "Campaign Not Found",
+				Message: "Campaign with the specified ID was not found",
+				Code:    "CAMPAIGN_NOT_FOUND",
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "Internal Server Error",
+			Message: err.Error(),
+			Code:    "INTERNAL_ERROR",
+		})
+	}
+
+	return c.JSON(http.StatusOK, campaign)
+}
+
+// UpdateCampaignProducts handles PATCH /api/campaigns/:id/products
+// @Summary Update products in a campaign
+// @Description Replace all products in a campaign with the provided list
+// @Tags campaigns
+// @Accept json
+// @Produce json
+// @Param id path string true "Campaign ID" format(uuid)
+// @Param request body dto.UpdateCampaignProductsRequest true "Products update request"
+// @Success 200 {object} dto.CampaignResponse "Campaign products updated successfully"
+// @Failure 400 {object} dto.ErrorResponse "Invalid request"
+// @Failure 404 {object} dto.ErrorResponse "Campaign not found"
+// @Failure 500 {object} dto.ErrorResponse "Internal server error"
+// @Router /api/campaigns/{id}/products [patch]
+func (h *CampaignHandler) UpdateCampaignProducts(c echo.Context) error {
+	campaignIDStr := c.Param("id")
+	campaignID, err := uuid.Parse(campaignIDStr)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid Input",
+			Message: "Invalid campaign ID format",
+			Code:    "INVALID_INPUT",
+		})
+	}
+
+	var req dto.UpdateCampaignProductsRequest
+	if err := c.Bind(&req); err != nil {
+		return c.JSON(http.StatusBadRequest, dto.ErrorResponse{
+			Error:   "Invalid Input",
+			Message: "Invalid request body",
+			Code:    "INVALID_INPUT",
+		})
+	}
+
+	// Update campaign products
+	err = h.service.UpdateCampaignProducts(c.Request().Context(), campaignID, req.ProductIDs)
+	if err != nil {
+		h.logger.Error("Failed to update campaign products", logger.String("error", err.Error()))
+
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "campaign not found") {
+			return c.JSON(http.StatusNotFound, dto.ErrorResponse{
+				Error:   "Campaign Not Found",
+				Message: "Campaign with the specified ID was not found",
+				Code:    "CAMPAIGN_NOT_FOUND",
+			})
+		}
+
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "Internal Server Error",
+			Message: "Failed to update campaign products",
+			Code:    "INTERNAL_ERROR",
+		})
+	}
+
+	// Get updated campaign to return
+	campaign, err := h.service.GetCampaign(c.Request().Context(), campaignID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
+			Error:   "Internal Server Error",
+			Message: "Failed to get updated campaign",
+			Code:    "INTERNAL_ERROR",
+		})
+	}
+
+	response := &dto.CampaignResponse{
+		ID:          campaign.ID,
+		Name:        campaign.Name,
+		UTMCampaign: campaign.UTMCampaign,
+		StartAt:     campaign.StartAt,
+		EndAt:       campaign.EndAt,
+		CreatedAt:   campaign.CreatedAt,
+	}
+
+	return c.JSON(http.StatusOK, response)
 }
