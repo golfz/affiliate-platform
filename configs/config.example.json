@@ -1,0 +1,38 @@
+{
+  "database": {
+    "write": {
+      "host": "localhost",
+      "port": 5432,
+      "user": "jonosize",
+      "password": "jonosize_dev",
+      "dbname": "jonosize",
+      "sslmode": "disable"
+    },
+    "read": {},
+    "max_open_conns": 25,
+    "max_idle_conns": 5,
+    "conn_max_lifetime": 5
+  },
+  "redis": {
+    "url": "redis://localhost:6379/0"
+  },
+  "server": {
+    "port": "8080",
+    "host": "0.0.0.0"
+  },
+  "api": {
+    "base_url": "http://localhost:8080"
+  },
+  "worker": {
+    "price_refresh_cron": "0 0 */6 * * *"
+  },
+  "adapters": {
+    "mock_mode": true
+  },
+  "auth": {
+    "basic_auth": {
+      "username": "admin",
+      "password": "admin123"
+    }
+  }
+}

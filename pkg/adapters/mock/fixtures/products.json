@@ -1,0 +1,34 @@
+[
+  {
+    "source_id": "MOCK-LAZADA-001",
+    "source_type": "url",
+    "marketplace": "lazada",
+    "title": "Premium Matcha Powder 100g",
+    "image_url": "https://image.makewebeasy.net/makeweb/m_1920x0/aSAKumEHs/Matcha/Matcha_09.jpg",
+    "url": "https://www.lazada.co.th/products/matcha-powder"
+  },
+  {
+    "source_id": "MOCK-SHOPEE-002",
+    "source_type": "sku",
+    "marketplace": "shopee",
+    "title": "Coffee Beans",
+    "image_url": "https://girls-be-ambitious.com/cdn/shop/products/9_b0eb2e9e-8a73-476e-ba88-3e281aaf0569.jpg",
+    "url": "https://shopee.co.th/coffee-beans"
+  },
+  {
+    "source_id": "MOCK-LAZADA-003",
+    "source_type": "url",
+    "marketplace": "lazada",
+    "title": "Mechanical Keyboard",
+    "image_url": "https://m.media-amazon.com/images/I/71ZRus2YNcL._AC_UF894,1000_QL80_.jpg",
+    "url": "https://www.lazada.co.th/products/mechanical-keyboard"
+  },
+  {
+    "source_id": "MOCK-SHOPEE-004",
+    "source_type": "url",
+    "marketplace": "shopee",
+    "title": "Portable USB-C Charging Cable 2m",
+    "image_url": "https://th-live-01.slatic.net/p/ef623b807ba6196b85194a5a1d8e64fc.jpg",
+    "url": "https://shopee.co.th/product/628267390/24952778873"
+  }
+]

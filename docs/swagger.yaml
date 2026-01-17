@@ -1,0 +1,670 @@
+basePath: /api
+definitions:
+  dto.BestPrice:
+    properties:
+      marketplace:
+        example: shopee
+        type: string
+      price:
+        example: 279
+        type: number
+    type: object
+  dto.CampaignProduct:
+    properties:
+      best_price:
+        $ref: '#/definitions/dto.BestPrice'
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      image_url:
+        example: https://example.com/image.jpg
+        type: string
+      links:
+        description: Links for this product in the campaign
+        items:
+          $ref: '#/definitions/dto.ProductLink'
+        type: array
+      offers:
+        items:
+          $ref: '#/definitions/dto.OfferResponse'
+        type: array
+      title:
+        example: Product Title
+        type: string
+    type: object
+  dto.CampaignPublicResponse:
+    properties:
+      end_at:
+        example: "2025-08-31T23:59:59Z"
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      name:
+        example: Summer Deal 2025
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/dto.CampaignProduct'
+        type: array
+      start_at:
+        example: "2025-06-01T00:00:00Z"
+        type: string
+    type: object
+  dto.CampaignResponse:
+    properties:
+      created_at:
+        example: "2025-01-15T10:00:00Z"
+        type: string
+      end_at:
+        example: "2025-08-31T23:59:59Z"
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      name:
+        example: Summer Deal 2025
+        type: string
+      start_at:
+        example: "2025-06-01T00:00:00Z"
+        type: string
+      utm_campaign:
+        example: summer_2025
+        type: string
+    type: object
+  dto.CampaignStat:
+    properties:
+      campaign_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      campaign_name:
+        example: Summer Deal 2025
+        type: string
+      clicks:
+        example: 450
+        type: integer
+    type: object
+  dto.CreateCampaignRequest:
+    properties:
+      end_at:
+        example: "2025-08-31T23:59:59Z"
+        type: string
+      name:
+        example: Summer Deal 2025
+        type: string
+      product_ids:
+        example:
+        - '["123e4567-e89b-12d3-a456-426614174000"]'
+        items:
+          type: string
+        type: array
+      start_at:
+        example: "2025-06-01T00:00:00Z"
+        type: string
+      utm_campaign:
+        example: summer_2025
+        type: string
+    required:
+    - end_at
+    - name
+    - start_at
+    - utm_campaign
+    type: object
+  dto.CreateLinkRequest:
+    properties:
+      campaign_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      marketplace:
+        enum:
+        - lazada
+        - shopee
+        example: lazada
+        type: string
+      product_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    required:
+    - campaign_id
+    - marketplace
+    - product_id
+    type: object
+  dto.CreateProductRequest:
+    properties:
+      source:
+        example: https://www.lazada.co.th/products/example-i123456.html
+        type: string
+      sourceType:
+        enum:
+        - url
+        - sku
+        example: url
+        type: string
+    required:
+    - source
+    - sourceType
+    type: object
+  dto.DashboardStatsResponse:
+    properties:
+      campaign_stats:
+        items:
+          $ref: '#/definitions/dto.CampaignStat'
+        type: array
+      ctr:
+        description: Click-through rate (percentage)
+        example: 2.78
+        type: number
+      marketplace_stats:
+        items:
+          $ref: '#/definitions/dto.MarketplaceStat'
+        type: array
+      top_products:
+        items:
+          $ref: '#/definitions/dto.TopProduct'
+        type: array
+      total_clicks:
+        example: 1250
+        type: integer
+      total_links:
+        example: 45
+        type: integer
+    type: object
+  dto.ErrorResponse:
+    properties:
+      code:
+        example: ERROR_CODE
+        type: string
+      details:
+        additionalProperties: true
+        type: object
+      error:
+        example: Error Type
+        type: string
+      message:
+        example: Human-readable message
+        type: string
+    type: object
+  dto.LinkResponse:
+    properties:
+      full_url:
+        example: https://demo.jonosize.com/go/abc123xyz
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      short_code:
+        example: abc123xyz
+        type: string
+      target_url:
+        example: https://www.lazada.co.th/products/...?utm_source=...&utm_medium=affiliate&utm_campaign=summer_2025
+        type: string
+    type: object
+  dto.MarketplaceStat:
+    properties:
+      clicks:
+        example: 750
+        type: integer
+      marketplace:
+        example: lazada
+        type: string
+      percentage:
+        example: 60
+        type: number
+    type: object
+  dto.OfferResponse:
+    properties:
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      last_checked_at:
+        example: "2025-01-15T10:00:00Z"
+        type: string
+      marketplace:
+        example: lazada
+        type: string
+      price:
+        example: 299
+        type: number
+      store_name:
+        example: Store Name
+        type: string
+    type: object
+  dto.ProductLink:
+    properties:
+      full_url:
+        example: https://demo.jonosize.com/go/abc123xyz
+        type: string
+      marketplace:
+        example: lazada
+        type: string
+      short_code:
+        example: abc123xyz
+        type: string
+    type: object
+  dto.ProductOffersResponse:
+    properties:
+      best_price:
+        $ref: '#/definitions/dto.BestPrice'
+      offers:
+        items:
+          $ref: '#/definitions/dto.OfferResponse'
+        type: array
+      product_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+    type: object
+  dto.ProductResponse:
+    properties:
+      created_at:
+        example: "2025-01-15T10:00:00Z"
+        type: string
+      id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      image_url:
+        example: https://example.com/image.jpg
+        type: string
+      offers:
+        items:
+          $ref: '#/definitions/dto.OfferResponse'
+        type: array
+      title:
+        example: Product Title
+        type: string
+    type: object
+  dto.TopProduct:
+    properties:
+      clicks:
+        example: 120
+        type: integer
+      marketplace:
+        example: lazada
+        type: string
+      product_id:
+        example: 123e4567-e89b-12d3-a456-426614174000
+        type: string
+      product_name:
+        example: Product Title
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API for affiliate link generation and price comparison
+  title: Jenosize Affiliate Platform API
+  version: "1.0"
+paths:
+  /api/admin/worker/refresh-prices:
+    post:
+      consumes:
+      - application/json
+      description: Manually triggers the price refresh worker to update all product
+        prices
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Price refresh triggered successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Manually trigger price refresh job
+      tags:
+      - admin
+  /api/campaigns:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all campaigns with pagination
+      parameters:
+      - default: 100
+        description: Limit number of results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Campaigns retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/dto.CampaignResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get all campaigns
+      tags:
+      - campaigns
+    post:
+      consumes:
+      - application/json
+      description: Create a new marketing campaign with UTM parameters
+      parameters:
+      - description: Campaign creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateCampaignRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Campaign created successfully
+          schema:
+            $ref: '#/definitions/dto.CampaignResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Create a new campaign
+      tags:
+      - campaigns
+  /api/campaigns/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a campaign and all related data (campaign products, links,
+        clicks)
+      parameters:
+      - description: Campaign ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Campaign deleted successfully
+        "400":
+          description: Invalid campaign ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Campaign not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Delete a campaign
+      tags:
+      - campaigns
+  /api/campaigns/{id}/public:
+    get:
+      consumes:
+      - application/json
+      description: Get campaign details with products and offers for public landing
+        page
+      parameters:
+      - description: Campaign ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Campaign details retrieved successfully
+          schema:
+            $ref: '#/definitions/dto.CampaignPublicResponse'
+        "400":
+          description: Campaign is not active
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Campaign not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get public campaign details
+      tags:
+      - public
+  /api/dashboard:
+    get:
+      consumes:
+      - application/json
+      description: Get aggregated click statistics, CTR, and top-performing products
+      parameters:
+      - description: Filter by campaign ID
+        format: uuid
+        in: query
+        name: campaign_id
+        type: string
+      - description: Filter by marketplace (lazada or shopee)
+        in: query
+        name: marketplace
+        type: string
+      - description: Start date filter (RFC3339)
+        in: query
+        name: start_date
+        type: string
+      - description: End date filter (RFC3339)
+        in: query
+        name: end_date
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Dashboard statistics retrieved successfully
+          schema:
+            $ref: '#/definitions/dto.DashboardStatsResponse'
+        "400":
+          description: Invalid request parameters
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get dashboard statistics
+      tags:
+      - dashboard
+  /api/links:
+    post:
+      consumes:
+      - application/json
+      description: Generate a short affiliate link for a product/marketplace combination
+      parameters:
+      - description: Link creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Link created successfully
+          schema:
+            $ref: '#/definitions/dto.LinkResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Product or campaign not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Generate affiliate short link
+      tags:
+      - links
+  /api/products:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of all products with pagination
+      parameters:
+      - default: 100
+        description: Limit number of results
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Offset for pagination
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Products retrieved successfully
+          schema:
+            items:
+              $ref: '#/definitions/dto.ProductResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get all products
+      tags:
+      - products
+    post:
+      consumes:
+      - application/json
+      description: Create a new product by fetching data from marketplace URL or SKU
+      parameters:
+      - description: Product creation request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Product created successfully
+          schema:
+            $ref: '#/definitions/dto.ProductResponse'
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Add product from Lazada/Shopee URL or SKU
+      tags:
+      - products
+  /api/products/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a product and all related data (offers, links, campaign
+        associations, clicks)
+      parameters:
+      - description: Product ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Product deleted successfully
+        "400":
+          description: Invalid product ID
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Delete a product
+      tags:
+      - products
+  /api/products/{id}/offers:
+    get:
+      consumes:
+      - application/json
+      description: Get all marketplace offers for a specific product
+      parameters:
+      - description: Product ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Product offers retrieved successfully
+          schema:
+            $ref: '#/definitions/dto.ProductOffersResponse'
+        "404":
+          description: Product not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Get offers (prices) for a product
+      tags:
+      - products
+  /go/{short_code}:
+    get:
+      consumes:
+      - application/json
+      description: Redirects to the target marketplace URL and tracks the click event
+      parameters:
+      - description: Short code
+        in: path
+        name: short_code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "302":
+          description: Redirect to target URL
+        "400":
+          description: Invalid redirect URL
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: Link not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      summary: Redirect to marketplace product URL
+      tags:
+      - public
+swagger: "2.0"
