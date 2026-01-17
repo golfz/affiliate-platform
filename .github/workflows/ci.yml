@@ -7,24 +7,9 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  test:
-    name: Test
+  unit-test:
+    name: Unit Tests
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: jonosize
-          POSTGRES_PASSWORD: jonosize_dev
-          POSTGRES_DB: jonosize
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     steps:
       - uses: actions/checkout@v4
@@ -46,7 +31,97 @@ jobs:
         working-directory: ./project
         run: go mod download
 
-      - name: Run tests
+      - name: Run unit tests
+        working-directory: ./project
+        run: go test ./... -v -coverprofile=coverage.out -short
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        with:
+          file: ./project/coverage.out
+          flags: unittests
+          name: codecov-unit-tests
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: jonosize
+          POSTGRES_PASSWORD: jonosize_dev
+          POSTGRES_DB: jonosize
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        working-directory: ./project
+        run: go mod download
+
+      - name: Install migrate tool
+        working-directory: ./project
+        run: |
+          go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.16.2
+
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U jonosize; do
+            echo "Waiting for PostgreSQL..."
+            sleep 2
+          done
+
+      - name: Run database migrations
+        working-directory: ./project
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: jonosize
+          DB_PASSWORD: jonosize_dev
+          DB_NAME: jonosize
+          DB_SSLMODE: disable
+        run: |
+          migrate -path migrations -database "postgres://jonosize:jonosize_dev@localhost:5432/jonosize?sslmode=disable" up
+
+      - name: Setup config file
+        working-directory: ./project
+        run: |
+          cp configs/config.example.json configs/config.json
+
+      - name: Run integration tests
         working-directory: ./project
         env:
           DATABASE_WRITE_HOST: localhost
@@ -55,15 +130,15 @@ jobs:
           DATABASE_WRITE_PASSWORD: jonosize_dev
           DATABASE_WRITE_DBNAME: jonosize
           DATABASE_WRITE_SSLMODE: disable
-        run: go test ./... -v -coverprofile=coverage.out
-
-      - name: Upload coverage reports
-        uses: codecov/codecov-action@v3
-        if: always()
-        with:
-          file: ./project/coverage.out
-          flags: unittests
-          name: codecov-umbrella
+          DATABASE_READ_HOST: localhost
+          DATABASE_READ_PORT: 5432
+          DATABASE_READ_USER: jonosize
+          DATABASE_READ_PASSWORD: jonosize_dev
+          DATABASE_READ_DBNAME: jonosize
+          DATABASE_READ_SSLMODE: disable
+          REDIS_URL: redis://localhost:6379/0
+          API_BASE_URL: http://localhost:8080
+        run: go test -tags=integration ./... -v
 
   lint:
     name: Lint

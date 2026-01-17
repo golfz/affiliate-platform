@@ -14,7 +14,6 @@
 ก่อนเริ่มต้น คุณสามารถตรวจสอบว่ามีทุกอย่างพร้อมหรือไม่ด้วย script `CHECK_SETUP.sh`:
 
 ```bash
-cd /Users/golfz/Workspaces/golfz/jonosize/project
 ./CHECK_SETUP.sh
 ```
 
@@ -56,10 +55,11 @@ Script นี้จะตรวจสอบ:
 
 ถ้าเห็น warnings เกี่ยวกับ `config.json` หรือ `node_modules` ไม่ต้องกังวล เพราะจะถูกสร้าง/ติดตั้งอัตโนมัติเมื่อรัน `make init`
 
-## Step 1: Clone และเข้า Directory
+## Step 1: Clone Repository (ถ้ายังไม่ได้ clone)
 
 ```bash
-cd /Users/golfz/Workspaces/golfz/jonosize/project
+git clone <repository-url>
+cd <repository-name>/project
 ```
 
 ## Step 2: Initialize Project (ครั้งแรกเท่านั้น)
@@ -252,7 +252,6 @@ kill -9 PID
 
 **แก้ไข**:
 ```bash
-cd project
 go mod download
 go mod tidy
 ```
@@ -261,7 +260,7 @@ go mod tidy
 
 **แก้ไข**:
 ```bash
-cd project/apps/web
+cd apps/web
 npm install
 ```
 
@@ -269,7 +268,6 @@ npm install
 
 **แก้ไข**:
 ```bash
-cd project
 cp configs/config.example.json configs/config.json
 # แก้ไข configs/config.json ตามความต้องการ
 ```
