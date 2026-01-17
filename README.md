@@ -94,7 +94,7 @@ classDiagram
 
   %% "implements" relationships
   MarketplaceAdapter <|.. MockAdapter
-  MarketplaceAdapter <|.. LazadaAdapter : TODO
+  MarketplaceAdapter <|.. LazadaAdapter
   MarketplaceAdapter <|.. ShopeeAdapter : TODO
 ```
 
