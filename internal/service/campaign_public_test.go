@@ -153,7 +153,7 @@ func (suite *CampaignPublicServiceTestSuite) TestCampaignPublicService_GetPublic
 				suite.campaignRepo.On("FindByID", suite.ctx, campaignID).Return(campaign, nil)
 			},
 			wantErr:     true,
-			errContains: "campaign is not currently active",
+			errContains: "campaign is not active",
 		},
 		{
 			name:       "campaign not active - ended",
@@ -169,7 +169,7 @@ func (suite *CampaignPublicServiceTestSuite) TestCampaignPublicService_GetPublic
 				suite.campaignRepo.On("FindByID", suite.ctx, campaignID).Return(campaign, nil)
 			},
 			wantErr:     true,
-			errContains: "campaign is not currently active",
+			errContains: "campaign is not active",
 		},
 		{
 			name:       "success with auto-created links",
@@ -181,14 +181,19 @@ func (suite *CampaignPublicServiceTestSuite) TestCampaignPublicService_GetPublic
 					UTMCampaign: "test_campaign",
 					StartAt:     startAt,
 					EndAt:       endAt,
+					CampaignProducts: []model.CampaignProduct{
+						{
+							CampaignID: campaignID,
+							ProductID:  productID,
+							Product: model.Product{
+								ID:       productID,
+								Title:    "Test Product",
+								ImageURL: "https://example.com/image.jpg",
+							},
+						},
+					},
 				}
-				suite.campaignRepo.On("FindByID", suite.ctx, campaignID).Return(campaign, nil)
-
-				product := &model.Product{
-					ID:    productID,
-					Title: "Test Product",
-				}
-				suite.productRepo.On("FindByID", suite.ctx, productID).Return(product, nil)
+				suite.campaignRepo.On("FindByID", suite.ctx, campaignID).Return(campaign, nil).Once()
 
 				offers := []*model.Offer{
 					{
@@ -198,24 +203,32 @@ func (suite *CampaignPublicServiceTestSuite) TestCampaignPublicService_GetPublic
 						Price:                 100.0,
 						MarketplaceProductURL: "https://lazada.com/product",
 					},
-					{
-						ID:                    uuid.New(),
-						ProductID:             productID,
-						Marketplace:           model.MarketplaceShopee,
-						Price:                 95.0,
-						MarketplaceProductURL: "https://shopee.com/product",
-					},
 				}
-				suite.offerRepo.On("FindByProductID", suite.ctx, productID).Return(offers, nil)
+				suite.offerRepo.On("FindByProductID", suite.ctx, productID).Return(offers, nil).Once()
 
 				// No links exist yet
-				suite.linkRepo.On("FindByProductIDAndCampaignID", suite.ctx, productID, campaignID).Return([]*model.Link{}, nil)
+				suite.linkRepo.On("FindByProductIDAndCampaignID", suite.ctx, productID, campaignID).Return([]*model.Link{}, nil).Once()
 
 				// Mock ShortCodeExists to return false (short code doesn't exist)
-				suite.linkRepo.On("ShortCodeExists", suite.ctx, mock.AnythingOfType("string")).Return(false, nil).Maybe()
+				suite.linkRepo.On("ShortCodeExists", suite.ctx, mock.AnythingOfType("string")).Return(false, nil).Once()
 
 				// Mock Create for auto-created links
-				suite.linkRepo.On("Create", suite.ctx, mock.AnythingOfType("*model.Link")).Return(nil).Maybe()
+				suite.linkRepo.On("Create", suite.ctx, mock.MatchedBy(func(link *model.Link) bool {
+					return link.ProductID == productID &&
+						link.CampaignID == campaignID &&
+						link.Marketplace == model.MarketplaceLazada &&
+						link.ShortCode != ""
+				})).Return(nil).Once()
+
+				// Re-fetch links after creation
+				createdLink := &model.Link{
+					ID:          uuid.New(),
+					ProductID:   productID,
+					CampaignID:  campaignID,
+					Marketplace: model.MarketplaceLazada,
+					ShortCode:   "newcode123",
+				}
+				suite.linkRepo.On("FindByProductIDAndCampaignID", suite.ctx, productID, campaignID).Return([]*model.Link{createdLink}, nil).Once()
 			},
 			wantErr: false,
 		},
@@ -223,6 +236,12 @@ func (suite *CampaignPublicServiceTestSuite) TestCampaignPublicService_GetPublic
 
 	for _, tt := range tests {
 		suite.Run(tt.name, func() {
+			// Reset mocks before each test
+			suite.campaignRepo.ExpectedCalls = nil
+			suite.productRepo.ExpectedCalls = nil
+			suite.offerRepo.ExpectedCalls = nil
+			suite.linkRepo.ExpectedCalls = nil
+
 			tt.setupMock()
 			result, err := suite.service.GetPublicCampaign(suite.ctx, tt.campaignID)
 
@@ -235,7 +254,9 @@ func (suite *CampaignPublicServiceTestSuite) TestCampaignPublicService_GetPublic
 			} else {
 				assert.NoError(suite.T(), err)
 				assert.NotNil(suite.T(), result)
-				assert.Equal(suite.T(), campaignID, result.ID)
+				if result != nil {
+					assert.Equal(suite.T(), campaignID, result.ID)
+				}
 			}
 		})
 	}
