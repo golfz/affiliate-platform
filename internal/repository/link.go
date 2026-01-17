@@ -103,3 +103,22 @@ func (r *LinkRepository) DeleteByCampaignIDAndNotInProducts(ctx context.Context,
 		Where("campaign_id = ? AND product_id NOT IN ?", campaignID, productIDs).
 		Delete(&model.Link{}).Error
 }
+
+// CountWithFilters counts links with optional filters (uses read DB)
+func (r *LinkRepository) CountWithFilters(ctx context.Context, campaignID *uuid.UUID, marketplace *string) (int64, error) {
+	query := r.db.Read.WithContext(ctx).Model(&model.Link{})
+
+	if campaignID != nil {
+		query = query.Where("campaign_id = ?", *campaignID)
+	}
+	if marketplace != nil {
+		query = query.Where("marketplace = ?", *marketplace)
+	}
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}

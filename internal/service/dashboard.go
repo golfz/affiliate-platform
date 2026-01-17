@@ -6,31 +6,32 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
-	"github.com/jonosize/affiliate-platform/internal/model"
-	"github.com/jonosize/affiliate-platform/internal/repository"
 )
 
 // DashboardService handles dashboard analytics business logic
 type DashboardService struct {
-	clickRepo    *repository.ClickRepository
-	linkRepo     *repository.LinkRepository
-	campaignRepo *repository.CampaignRepository
-	productRepo  *repository.ProductRepository
-	db           *database.DB
+	clickRepo    ClickRepositoryInterface
+	linkRepo     LinkRepositoryInterface
+	campaignRepo CampaignRepositoryInterface
+	productRepo  ProductRepositoryInterface
 	logger       logger.Logger
 }
 
 // NewDashboardService creates a new dashboard service
-func NewDashboardService(db *database.DB, log logger.Logger) *DashboardService {
+func NewDashboardService(
+	clickRepo ClickRepositoryInterface,
+	linkRepo LinkRepositoryInterface,
+	campaignRepo CampaignRepositoryInterface,
+	productRepo ProductRepositoryInterface,
+	log logger.Logger,
+) *DashboardService {
 	return &DashboardService{
-		clickRepo:    repository.NewClickRepository(db),
-		linkRepo:     repository.NewLinkRepository(db),
-		campaignRepo: repository.NewCampaignRepository(db),
-		productRepo:  repository.NewProductRepository(db),
-		db:           db,
+		clickRepo:    clickRepo,
+		linkRepo:     linkRepo,
+		campaignRepo: campaignRepo,
+		productRepo:  productRepo,
 		logger:       log,
 	}
 }
@@ -102,90 +103,18 @@ func (s *DashboardService) GetDashboardStats(ctx context.Context, params dto.Das
 
 // getTotalClicks gets total click count with filters
 func (s *DashboardService) getTotalClicks(ctx context.Context, params dto.DashboardQueryParams, startDate, endDate time.Time) (int64, error) {
-	query := s.db.Read.WithContext(ctx).Model(&model.Click{})
-
-	// Apply date range filter
-	if !startDate.IsZero() {
-		query = query.Where("timestamp >= ?", startDate)
-	}
-	if !endDate.IsZero() {
-		query = query.Where("timestamp <= ?", endDate)
-	}
-
-	// Apply campaign filter (via link join)
-	if params.CampaignID != nil {
-		query = query.Joins("JOIN links ON clicks.link_id = links.id").
-			Where("links.campaign_id = ?", *params.CampaignID)
-	}
-
-	// Apply marketplace filter (via link join)
-	if params.Marketplace != nil {
-		query = query.Joins("JOIN links ON clicks.link_id = links.id").
-			Where("links.marketplace = ?", *params.Marketplace)
-	}
-
-	var count int64
-	if err := query.Count(&count).Error; err != nil {
-		return 0, err
-	}
-
-	return count, nil
+	return s.clickRepo.CountWithFilters(ctx, params.CampaignID, params.Marketplace, startDate, endDate)
 }
 
 // getTotalLinks gets total link count with filters
 func (s *DashboardService) getTotalLinks(ctx context.Context, params dto.DashboardQueryParams) (int64, error) {
-	query := s.db.Read.WithContext(ctx).Model(&model.Link{})
-
-	if params.CampaignID != nil {
-		query = query.Where("campaign_id = ?", *params.CampaignID)
-	}
-	if params.Marketplace != nil {
-		query = query.Where("marketplace = ?", *params.Marketplace)
-	}
-
-	var count int64
-	if err := query.Count(&count).Error; err != nil {
-		return 0, err
-	}
-
-	return count, nil
+	return s.linkRepo.CountWithFilters(ctx, params.CampaignID, params.Marketplace)
 }
 
 // getCampaignStats gets click statistics grouped by campaign
 func (s *DashboardService) getCampaignStats(ctx context.Context, params dto.DashboardQueryParams, startDate, endDate time.Time) ([]dto.CampaignStat, error) {
-	query := s.db.Read.WithContext(ctx).
-		Table("clicks").
-		Select("campaigns.id as campaign_id, campaigns.name as campaign_name, COUNT(clicks.id) as clicks").
-		Joins("JOIN links ON clicks.link_id = links.id").
-		Joins("JOIN campaigns ON links.campaign_id = campaigns.id").
-		Group("campaigns.id, campaigns.name")
-
-	// Apply date range filter
-	if !startDate.IsZero() {
-		query = query.Where("clicks.timestamp >= ?", startDate)
-	}
-	if !endDate.IsZero() {
-		query = query.Where("clicks.timestamp <= ?", endDate)
-	}
-
-	// Apply marketplace filter
-	if params.Marketplace != nil {
-		query = query.Where("links.marketplace = ?", *params.Marketplace)
-	}
-
-	// Apply campaign filter
-	if params.CampaignID != nil {
-		query = query.Where("campaigns.id = ?", *params.CampaignID)
-	}
-
-	type result struct {
-		CampaignID   uuid.UUID
-		CampaignName string
-		Clicks       int64
-	}
-
-	var results []result
-	if err := query.Scan(&results).Error; err != nil {
+	results, err := s.clickRepo.CountByCampaignWithFilters(ctx, params.CampaignID, params.Marketplace, startDate, endDate)
+	if err != nil {
 		return nil, err
 	}
 
@@ -203,37 +132,8 @@ func (s *DashboardService) getCampaignStats(ctx context.Context, params dto.Dash
 
 // getMarketplaceStats gets click statistics grouped by marketplace
 func (s *DashboardService) getMarketplaceStats(ctx context.Context, params dto.DashboardQueryParams, startDate, endDate time.Time) ([]dto.MarketplaceStat, error) {
-	query := s.db.Read.WithContext(ctx).
-		Table("clicks").
-		Select("links.marketplace, COUNT(clicks.id) as clicks").
-		Joins("JOIN links ON clicks.link_id = links.id").
-		Group("links.marketplace")
-
-	// Apply date range filter
-	if !startDate.IsZero() {
-		query = query.Where("clicks.timestamp >= ?", startDate)
-	}
-	if !endDate.IsZero() {
-		query = query.Where("clicks.timestamp <= ?", endDate)
-	}
-
-	// Apply campaign filter
-	if params.CampaignID != nil {
-		query = query.Where("links.campaign_id = ?", *params.CampaignID)
-	}
-
-	// Apply marketplace filter
-	if params.Marketplace != nil {
-		query = query.Where("links.marketplace = ?", *params.Marketplace)
-	}
-
-	type result struct {
-		Marketplace string
-		Clicks      int64
-	}
-
-	var results []result
-	if err := query.Scan(&results).Error; err != nil {
+	results, err := s.clickRepo.CountByMarketplaceWithFilters(ctx, params.CampaignID, params.Marketplace, startDate, endDate)
+	if err != nil {
 		return nil, err
 	}
 
@@ -261,42 +161,8 @@ func (s *DashboardService) getMarketplaceStats(ctx context.Context, params dto.D
 
 // getTopProducts gets top-performing products by click count
 func (s *DashboardService) getTopProducts(ctx context.Context, params dto.DashboardQueryParams, startDate, endDate time.Time) ([]dto.TopProduct, error) {
-	query := s.db.Read.WithContext(ctx).
-		Table("clicks").
-		Select("products.id as product_id, products.title as product_name, links.marketplace, COUNT(clicks.id) as clicks").
-		Joins("JOIN links ON clicks.link_id = links.id").
-		Joins("JOIN products ON links.product_id = products.id").
-		Group("products.id, products.title, links.marketplace").
-		Order("clicks DESC").
-		Limit(10)
-
-	// Apply date range filter
-	if !startDate.IsZero() {
-		query = query.Where("clicks.timestamp >= ?", startDate)
-	}
-	if !endDate.IsZero() {
-		query = query.Where("clicks.timestamp <= ?", endDate)
-	}
-
-	// Apply campaign filter
-	if params.CampaignID != nil {
-		query = query.Where("links.campaign_id = ?", *params.CampaignID)
-	}
-
-	// Apply marketplace filter
-	if params.Marketplace != nil {
-		query = query.Where("links.marketplace = ?", *params.Marketplace)
-	}
-
-	type result struct {
-		ProductID   uuid.UUID
-		ProductName string
-		Marketplace string
-		Clicks      int64
-	}
-
-	var results []result
-	if err := query.Scan(&results).Error; err != nil {
+	results, err := s.clickRepo.FindTopProductsWithFilters(ctx, params.CampaignID, params.Marketplace, startDate, endDate, 10)
+	if err != nil {
 		return nil, err
 	}
 

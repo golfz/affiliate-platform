@@ -7,26 +7,22 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/model"
-	"github.com/jonosize/affiliate-platform/internal/repository"
 )
 
 // ClickService handles click tracking business logic
 type ClickService struct {
-	clickRepo *repository.ClickRepository
-	linkRepo  *repository.LinkRepository
-	db        *database.DB
+	clickRepo ClickRepositoryInterface
+	linkRepo  LinkRepositoryInterface
 	logger    logger.Logger
 }
 
 // NewClickService creates a new click service
-func NewClickService(db *database.DB, log logger.Logger) *ClickService {
+func NewClickService(clickRepo ClickRepositoryInterface, linkRepo LinkRepositoryInterface, log logger.Logger) *ClickService {
 	return &ClickService{
-		clickRepo: repository.NewClickRepository(db),
-		linkRepo:  repository.NewLinkRepository(db),
-		db:        db,
+		clickRepo: clickRepo,
+		linkRepo:  linkRepo,
 		logger:    log,
 	}
 }

@@ -5,27 +5,22 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/logger"
-	"github.com/jonosize/affiliate-platform/internal/repository"
 	"github.com/jonosize/affiliate-platform/internal/validator"
 )
 
 // RedirectService handles redirect business logic
 type RedirectService struct {
-	linkRepo *repository.LinkRepository
+	linkRepo LinkRepositoryInterface
 	clickSvc *ClickService
-	db       *database.DB
 	logger   logger.Logger
 }
 
 // NewRedirectService creates a new redirect service
-func NewRedirectService(db *database.DB, log logger.Logger) *RedirectService {
-	clickSvc := NewClickService(db, log)
+func NewRedirectService(linkRepo LinkRepositoryInterface, clickSvc *ClickService, log logger.Logger) *RedirectService {
 	return &RedirectService{
-		linkRepo: repository.NewLinkRepository(db),
+		linkRepo: linkRepo,
 		clickSvc: clickSvc,
-		db:       db,
 		logger:   log,
 	}
 }

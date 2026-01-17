@@ -5,20 +5,36 @@ import (
 	"github.com/jonosize/affiliate-platform/internal/config"
 	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/logger"
+	"github.com/jonosize/affiliate-platform/internal/repository"
 	"github.com/jonosize/affiliate-platform/internal/service"
 	"github.com/jonosize/affiliate-platform/internal/worker"
+	"github.com/jonosize/affiliate-platform/pkg/adapters/mock"
 	"github.com/labstack/echo/v4"
 )
 
 // SetupRoutes configures all API routes
 func SetupRoutes(e *echo.Echo, db *database.DB, cfg config.Config, log logger.Logger, priceRefreshWorker *worker.PriceRefreshWorker) {
-	// Initialize services
-	productService := service.NewProductService(db, log)
-	campaignService := service.NewCampaignService(db, cfg, log)
-	linkService := service.NewLinkService(db, cfg, log)
-	redirectService := service.NewRedirectService(db, log)
-	campaignPublicService := service.NewCampaignPublicService(db, cfg, log)
-	dashboardService := service.NewDashboardService(db, log)
+	// Initialize repositories
+	productRepo := repository.NewProductRepository(db)
+	offerRepo := repository.NewOfferRepository(db)
+	campaignRepo := repository.NewCampaignRepository(db)
+	linkRepo := repository.NewLinkRepository(db)
+	clickRepo := repository.NewClickRepository(db)
+
+	// Initialize adapters
+	lazadaAdapter, shopeeAdapter, err := mock.GetMockAdapters()
+	if err != nil {
+		log.Fatal("Failed to initialize adapters", logger.Error(err))
+	}
+
+	// Initialize services with repository interfaces and adapters
+	productService := service.NewProductService(productRepo, offerRepo, lazadaAdapter, shopeeAdapter, log)
+	campaignService := service.NewCampaignService(campaignRepo, linkRepo, offerRepo, productRepo, cfg, log)
+	linkService := service.NewLinkService(linkRepo, campaignRepo, productRepo, offerRepo, cfg, log)
+	clickService := service.NewClickService(clickRepo, linkRepo, log)
+	redirectService := service.NewRedirectService(linkRepo, clickService, log)
+	campaignPublicService := service.NewCampaignPublicService(campaignRepo, productRepo, offerRepo, linkRepo, cfg, log)
+	dashboardService := service.NewDashboardService(clickRepo, linkRepo, campaignRepo, productRepo, log)
 
 	// Initialize handlers
 	productHandler := handlers.NewProductHandler(productService, log)

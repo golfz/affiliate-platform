@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/model"
-	"github.com/jonosize/affiliate-platform/internal/repository"
 	"github.com/jonosize/affiliate-platform/internal/validator"
 	"github.com/jonosize/affiliate-platform/pkg/adapters"
 	"github.com/jonosize/affiliate-platform/pkg/adapters/mock"
@@ -18,19 +16,27 @@ import (
 
 // ProductService handles product business logic
 type ProductService struct {
-	productRepo *repository.ProductRepository
-	offerRepo   *repository.OfferRepository
-	db          *database.DB
-	logger      logger.Logger
+	productRepo   ProductRepositoryInterface
+	offerRepo     OfferRepositoryInterface
+	lazadaAdapter adapters.MarketplaceAdapter
+	shopeeAdapter adapters.MarketplaceAdapter
+	logger        logger.Logger
 }
 
 // NewProductService creates a new product service
-func NewProductService(db *database.DB, log logger.Logger) *ProductService {
+func NewProductService(
+	productRepo ProductRepositoryInterface,
+	offerRepo OfferRepositoryInterface,
+	lazadaAdapter adapters.MarketplaceAdapter,
+	shopeeAdapter adapters.MarketplaceAdapter,
+	log logger.Logger,
+) *ProductService {
 	return &ProductService{
-		productRepo: repository.NewProductRepository(db),
-		offerRepo:   repository.NewOfferRepository(db),
-		db:          db,
-		logger:      log,
+		productRepo:   productRepo,
+		offerRepo:     offerRepo,
+		lazadaAdapter: lazadaAdapter,
+		shopeeAdapter: shopeeAdapter,
+		logger:        log,
 	}
 }
 
@@ -38,12 +44,6 @@ func NewProductService(db *database.DB, log logger.Logger) *ProductService {
 func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProductRequest) (*dto.ProductResponse, error) {
 	if req.LazadaURL == "" && req.ShopeeURL == "" {
 		return nil, fmt.Errorf("at least one URL (Lazada or Shopee) must be provided")
-	}
-
-	// Get adapters (using mock adapters for now)
-	lazadaAdapter, shopeeAdapter, err := mock.GetMockAdapters()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get adapters: %w", err)
 	}
 
 	var productTitle string
@@ -56,7 +56,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 		if _, _, err := validator.ValidateProductURL(req.LazadaURL); err != nil {
 			return nil, fmt.Errorf("invalid Lazada URL: %w", err)
 		}
-		productData, err := lazadaAdapter.FetchProduct(ctx, req.LazadaURL, adapters.SourceTypeURL)
+		productData, err := s.lazadaAdapter.FetchProduct(ctx, req.LazadaURL, adapters.SourceTypeURL)
 		if err == nil && productData != nil {
 			productTitle = productData.Title
 			productImageURL = productData.ImageURL
@@ -72,7 +72,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 		if _, _, err := validator.ValidateProductURL(req.ShopeeURL); err != nil {
 			return nil, fmt.Errorf("invalid Shopee URL: %w", err)
 		}
-		productData, err := shopeeAdapter.FetchProduct(ctx, req.ShopeeURL, adapters.SourceTypeURL)
+		productData, err := s.shopeeAdapter.FetchProduct(ctx, req.ShopeeURL, adapters.SourceTypeURL)
 		if err == nil && productData != nil {
 			productTitle = productData.Title
 			productImageURL = productData.ImageURL
@@ -87,7 +87,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 	if productTitle == "" && req.LazadaURL == "" && req.ShopeeURL == "" {
 		// Call FetchProduct with a dummy URL to trigger random selection in mock adapter
 		// The actual URL doesn't matter here, as mock adapter will pick a random product
-		productData, err := lazadaAdapter.FetchProduct(ctx, "https://www.lazada.co.th/products/random", adapters.SourceTypeURL)
+		productData, err := s.lazadaAdapter.FetchProduct(ctx, "https://www.lazada.co.th/products/random", adapters.SourceTypeURL)
 		if err == nil && productData != nil {
 			productTitle = productData.Title
 			productImageURL = productData.ImageURL
@@ -134,7 +134,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 		// Otherwise, try FetchOffer with URL
 		if hasSourceID {
 			// Cast to MockAdapter to access FetchOfferBySourceID
-			if mockAdapter, ok := lazadaAdapter.(*mock.MockAdapter); ok {
+			if mockAdapter, ok := s.lazadaAdapter.(*mock.MockAdapter); ok {
 				offerData, err = mockAdapter.FetchOfferBySourceID(ctx, randomSourceID, adapters.MarketplaceLazada)
 			} else {
 				// Fallback to FetchOffer if not MockAdapter
@@ -144,7 +144,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 				} else {
 					lazadaOfferURL = primaryProductURL
 				}
-				offerData, err = lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
+				offerData, err = s.lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
 			}
 		} else {
 			// Use URL-based FetchOffer
@@ -154,7 +154,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 			} else {
 				lazadaOfferURL = primaryProductURL
 			}
-			offerData, err = lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
+			offerData, err = s.lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
 		}
 
 		if err == nil && offerData != nil {
@@ -181,7 +181,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 		// Otherwise, try FetchOffer with URL
 		if hasSourceID {
 			// Cast to MockAdapter to access FetchOfferBySourceID
-			if mockAdapter, ok := shopeeAdapter.(*mock.MockAdapter); ok {
+			if mockAdapter, ok := s.shopeeAdapter.(*mock.MockAdapter); ok {
 				offerData, err = mockAdapter.FetchOfferBySourceID(ctx, randomSourceID, adapters.MarketplaceShopee)
 			} else {
 				// Fallback to FetchOffer if not MockAdapter
@@ -191,7 +191,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 				} else {
 					shopeeOfferURL = primaryProductURL
 				}
-				offerData, err = shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
+				offerData, err = s.shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
 			}
 		} else {
 			// Use URL-based FetchOffer
@@ -201,7 +201,7 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 			} else {
 				shopeeOfferURL = primaryProductURL
 			}
-			offerData, err = shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
+			offerData, err = s.shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
 		}
 
 		if err == nil && offerData != nil {

@@ -6,32 +6,35 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jonosize/affiliate-platform/internal/config"
-	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/model"
-	"github.com/jonosize/affiliate-platform/internal/repository"
 )
 
 // CampaignService handles campaign business logic
 type CampaignService struct {
-	campaignRepo *repository.CampaignRepository
-	linkRepo     *repository.LinkRepository
-	offerRepo    *repository.OfferRepository
-	productRepo  *repository.ProductRepository
-	db           *database.DB
+	campaignRepo CampaignRepositoryInterface
+	linkRepo     LinkRepositoryInterface
+	offerRepo    OfferRepositoryInterface
+	productRepo  ProductRepositoryInterface
 	logger       logger.Logger
 	cfg          config.Config
 }
 
 // NewCampaignService creates a new campaign service
-func NewCampaignService(db *database.DB, cfg config.Config, log logger.Logger) *CampaignService {
+func NewCampaignService(
+	campaignRepo CampaignRepositoryInterface,
+	linkRepo LinkRepositoryInterface,
+	offerRepo OfferRepositoryInterface,
+	productRepo ProductRepositoryInterface,
+	cfg config.Config,
+	log logger.Logger,
+) *CampaignService {
 	return &CampaignService{
-		campaignRepo: repository.NewCampaignRepository(db),
-		linkRepo:     repository.NewLinkRepository(db),
-		offerRepo:    repository.NewOfferRepository(db),
-		productRepo:  repository.NewProductRepository(db),
-		db:           db,
+		campaignRepo: campaignRepo,
+		linkRepo:     linkRepo,
+		offerRepo:    offerRepo,
+		productRepo:  productRepo,
 		logger:       log,
 		cfg:          cfg,
 	}

@@ -5,32 +5,35 @@ import (
 	"fmt"
 
 	"github.com/jonosize/affiliate-platform/internal/config"
-	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/model"
-	"github.com/jonosize/affiliate-platform/internal/repository"
 )
 
 // LinkService handles link business logic
 type LinkService struct {
-	linkRepo     *repository.LinkRepository
-	campaignRepo *repository.CampaignRepository
-	productRepo  *repository.ProductRepository
-	offerRepo    *repository.OfferRepository
-	db           *database.DB
+	linkRepo     LinkRepositoryInterface
+	campaignRepo CampaignRepositoryInterface
+	productRepo  ProductRepositoryInterface
+	offerRepo    OfferRepositoryInterface
 	logger       logger.Logger
 	cfg          config.Config
 }
 
 // NewLinkService creates a new link service
-func NewLinkService(db *database.DB, cfg config.Config, log logger.Logger) *LinkService {
+func NewLinkService(
+	linkRepo LinkRepositoryInterface,
+	campaignRepo CampaignRepositoryInterface,
+	productRepo ProductRepositoryInterface,
+	offerRepo OfferRepositoryInterface,
+	cfg config.Config,
+	log logger.Logger,
+) *LinkService {
 	return &LinkService{
-		linkRepo:     repository.NewLinkRepository(db),
-		campaignRepo: repository.NewCampaignRepository(db),
-		productRepo:  repository.NewProductRepository(db),
-		offerRepo:    repository.NewOfferRepository(db),
-		db:           db,
+		linkRepo:     linkRepo,
+		campaignRepo: campaignRepo,
+		productRepo:  productRepo,
+		offerRepo:    offerRepo,
 		logger:       log,
 		cfg:          cfg,
 	}

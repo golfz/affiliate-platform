@@ -67,3 +67,141 @@ func (r *ClickRepository) FindRecentClicks(ctx context.Context, limit int) ([]mo
 		Find(&clicks).Error
 	return clicks, err
 }
+
+// CountWithFilters counts clicks with optional filters (uses read DB)
+func (r *ClickRepository) CountWithFilters(ctx context.Context, campaignID *uuid.UUID, marketplace *string, startDate, endDate time.Time) (int64, error) {
+	query := r.db.Read.WithContext(ctx).Model(&model.Click{})
+
+	// Apply date range filter
+	if !startDate.IsZero() {
+		query = query.Where("timestamp >= ?", startDate)
+	}
+	if !endDate.IsZero() {
+		query = query.Where("timestamp <= ?", endDate)
+	}
+
+	// Apply campaign filter (via link join)
+	if campaignID != nil {
+		query = query.Joins("JOIN links ON clicks.link_id = links.id").
+			Where("links.campaign_id = ?", *campaignID)
+	}
+
+	// Apply marketplace filter (via link join)
+	if marketplace != nil {
+		query = query.Joins("JOIN links ON clicks.link_id = links.id").
+			Where("links.marketplace = ?", *marketplace)
+	}
+
+	var count int64
+	if err := query.Count(&count).Error; err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+// CountByCampaignWithFilters counts clicks grouped by campaign with filters (uses read DB)
+func (r *ClickRepository) CountByCampaignWithFilters(ctx context.Context, campaignID *uuid.UUID, marketplace *string, startDate, endDate time.Time) ([]model.CampaignStatResult, error) {
+	query := r.db.Read.WithContext(ctx).
+		Table("clicks").
+		Select("campaigns.id as campaign_id, campaigns.name as campaign_name, COUNT(clicks.id) as clicks").
+		Joins("JOIN links ON clicks.link_id = links.id").
+		Joins("JOIN campaigns ON links.campaign_id = campaigns.id").
+		Group("campaigns.id, campaigns.name")
+
+	// Apply date range filter
+	if !startDate.IsZero() {
+		query = query.Where("clicks.timestamp >= ?", startDate)
+	}
+	if !endDate.IsZero() {
+		query = query.Where("clicks.timestamp <= ?", endDate)
+	}
+
+	// Apply marketplace filter
+	if marketplace != nil {
+		query = query.Where("links.marketplace = ?", *marketplace)
+	}
+
+	// Apply campaign filter
+	if campaignID != nil {
+		query = query.Where("campaigns.id = ?", *campaignID)
+	}
+
+	var results []model.CampaignStatResult
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// CountByMarketplaceWithFilters counts clicks grouped by marketplace with filters (uses read DB)
+func (r *ClickRepository) CountByMarketplaceWithFilters(ctx context.Context, campaignID *uuid.UUID, marketplace *string, startDate, endDate time.Time) ([]model.MarketplaceStatResult, error) {
+	query := r.db.Read.WithContext(ctx).
+		Table("clicks").
+		Select("links.marketplace, COUNT(clicks.id) as clicks").
+		Joins("JOIN links ON clicks.link_id = links.id").
+		Group("links.marketplace")
+
+	// Apply date range filter
+	if !startDate.IsZero() {
+		query = query.Where("clicks.timestamp >= ?", startDate)
+	}
+	if !endDate.IsZero() {
+		query = query.Where("clicks.timestamp <= ?", endDate)
+	}
+
+	// Apply campaign filter
+	if campaignID != nil {
+		query = query.Where("links.campaign_id = ?", *campaignID)
+	}
+
+	// Apply marketplace filter
+	if marketplace != nil {
+		query = query.Where("links.marketplace = ?", *marketplace)
+	}
+
+	var results []model.MarketplaceStatResult
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
+// FindTopProductsWithFilters finds top products by click count with filters (uses read DB)
+func (r *ClickRepository) FindTopProductsWithFilters(ctx context.Context, campaignID *uuid.UUID, marketplace *string, startDate, endDate time.Time, limit int) ([]model.TopProductResult, error) {
+	query := r.db.Read.WithContext(ctx).
+		Table("clicks").
+		Select("products.id as product_id, products.title as product_name, links.marketplace, COUNT(clicks.id) as clicks").
+		Joins("JOIN links ON clicks.link_id = links.id").
+		Joins("JOIN products ON links.product_id = products.id").
+		Group("products.id, products.title, links.marketplace").
+		Order("clicks DESC").
+		Limit(limit)
+
+	// Apply date range filter
+	if !startDate.IsZero() {
+		query = query.Where("clicks.timestamp >= ?", startDate)
+	}
+	if !endDate.IsZero() {
+		query = query.Where("clicks.timestamp <= ?", endDate)
+	}
+
+	// Apply campaign filter
+	if campaignID != nil {
+		query = query.Where("links.campaign_id = ?", *campaignID)
+	}
+
+	// Apply marketplace filter
+	if marketplace != nil {
+		query = query.Where("links.marketplace = ?", *marketplace)
+	}
+
+	var results []model.TopProductResult
+	if err := query.Scan(&results).Error; err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
