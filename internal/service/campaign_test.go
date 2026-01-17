@@ -7,13 +7,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/jonosize/affiliate-platform/internal/config"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/model"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
-	"github.com/stretchr/testify/suite"
 )
 
 // MockCampaignRepository is a mock implementation of CampaignRepositoryInterface
