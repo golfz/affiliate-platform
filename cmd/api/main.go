@@ -37,9 +37,7 @@ func main() {
 		panic("failed to initialize logger: " + err.Error())
 	}
 	defer func() {
-		if err := logger.Get().Sync(); err != nil {
-			// Log error but don't fail shutdown
-		}
+		_ = logger.Get().Sync() // Ignore error on sync
 	}()
 
 	log := logger.Get()

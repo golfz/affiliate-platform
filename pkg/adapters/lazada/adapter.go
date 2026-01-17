@@ -155,9 +155,7 @@ func (a *LazadaAdapter) getProduct(ctx context.Context, itemID string) (*LazadaP
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer func() {
-		if err := resp.Body.Close(); err != nil {
-			// Log error but don't fail the request
-		}
+		_ = resp.Body.Close() // Ignore error on close
 	}()
 
 	if resp.StatusCode != http.StatusOK {

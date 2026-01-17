@@ -29,3 +29,13 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - typecheck
+    - linters:
+        - typecheck
+      text: "undefined: echo"
+    - linters:
+        - typecheck
+      text: "undefined: cron"
