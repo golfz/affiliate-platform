@@ -19,6 +19,10 @@ node_modules/
 # Go workspace file
 go.work
 
+# Go build cache
+.gocache/
+.gomodcache/
+
 # IDE specific files
 .idea/
 .vscode/

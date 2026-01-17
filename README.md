@@ -1,170 +1,186 @@
-# Jenosize Affiliate Platform
+# Affiliate Platform (Price Comparison + Campaigns + Short Links)
 
-Affiliate Web App for Promotion & Marketplace Price Comparison (Lazada / Shopee).
+## Project Overview
 
-## Features
+A mini affiliate web application for **promotion landing pages**, **Lazada/Shopee price comparison**, **affiliate short links**, and **click analytics**.
 
-- **Product & Price Comparison**: Admin can add products via Lazada/Shopee URLs and compare prices across marketplaces
-- **Affiliate Link Generator**: Generate short affiliate links with UTM parameters for tracking
-- **Campaign Management**: Create marketing campaigns with multiple products
-- **Click Tracking & Analytics**: Track clicks and view analytics dashboard
-- **Public Landing Pages**: Public-facing campaign pages with price comparison
-- **Background Jobs**: Automatic price refresh worker (cron-based)
+The codebase focuses on a clean, modular architecture with marketplace adapters (real or mock), a background price refresh job, and pragmatic testing/CI.
 
-## Tech Stack
+## Problem Understanding & Scope
 
-- **Backend**: Go 1.21, Echo Framework, GORM, PostgreSQL, Redis
-- **Frontend**: Next.js 14, React 18, TypeScript, Tailwind CSS
-- **Database**: PostgreSQL 15
-- **Cache**: Redis 7
-- **Documentation**: Swagger/OpenAPI (swaggo/swag)
-- **CI/CD**: GitHub Actions
+### What this system solves
 
-## Quick Start
+Affiliate/promotion platforms need a reliable flow from **campaign creation** → **user click** → **redirect** → **tracking** while keeping marketplace integrations replaceable (APIs change, rate limits exist, scraping is brittle).
 
-For detailed step-by-step instructions, see [QUICKSTART.md](./QUICKSTART.md).
+### MVP scope (intentionally)
+
+- Model core domains: products, offers, campaigns, links, clicks
+- Support a realistic affiliate redirect flow (`/go/:short_code`) with click tracking
+- Abstract marketplaces behind adapters to allow adding/removing marketplaces without refactoring core logic
+- Provide an admin UI + a public campaign landing page for end-to-end testing
+
+### Out of scope (intentional)
+
+- Authentication/authorization (kept out to reduce setup friction)
+- Impression tracking (CTR here is a simplified proxy based on clicks)
+- Conversion/revenue attribution and anti-fraud mechanisms
+- Full production hardening (rate limiting, caching strategy, observability, RBAC)
+
+## Key Features (MVP)
+
+- **Product price comparison** between Lazada and Shopee
+- **Marketplace adapters** (mock fixtures + optional real integration)
+- **Campaign management** with UTM configuration and date range
+- **Affiliate short link generation**
+- **Redirect + click tracking** via `GET /go/:short_code`
+- **Public campaign landing page**
+- **Admin analytics dashboard** (clicks, CTR proxy, top products)
+- **Background price refresh job**
+
+## Architecture & Design Decisions
+
+### Architecture overview
+
+```mermaid
+flowchart LR
+  U[User Browser] -->|HTTP| WEB["Next.js Web<br/>(apps/web)"]
+  WEB -->|REST| API["Go API<br/>(cmd/api)"]
+  API --> DB[(PostgreSQL)]
+  API --> R[(Redis - optional)]
+  API --> AD["Marketplace Adapters<br/>(pkg/adapters)"]
+  W["Price Refresh Worker<br/>(cron)"] -->|refresh offers| API
+```
+
+### Key boundaries (backend)
+
+- **`internal/api`**: routing + HTTP handlers + DTOs
+- **`internal/service`**: business logic (campaign, product, link, redirect, dashboard)
+- **`internal/repository`**: persistence layer (GORM)
+- **`pkg/adapters`**: marketplace integration boundary
+  - **`pkg/adapters/mock`** uses embedded JSON fixtures (`pkg/adapters/mock/fixtures/products.json`)
+  - **`pkg/adapters/lazada`** includes a real adapter (requires credentials)
+  - **`pkg/adapters/shopee`** is scaffolded (TODO: implement real API integration)
+
+### Why adapter pattern
+
+Marketplace APIs differ (auth, data models, quotas). The adapter interface lets core logic depend on a stable contract (`FetchProduct`, `FetchOffer`), keeping external changes localized to the adapter package.
+
+## Data Model Overview
+
+### Core entities
+
+- **Product**: a logical product record, independent of marketplace
+- **Offer**: marketplace-specific price/store info for a product
+- **Campaign**: marketing container with UTM configuration and time window
+- **CampaignProduct**: many-to-many join table associating products with campaigns (used to determine which products appear on public campaign landing pages)
+- **Link**: short link binding campaign + product + marketplace
+- **Click**: tracking event recorded on each redirect
+
+### Entities (high-level fields)
+
+| Entity | Key fields |
+|---|---|
+| **Product** | `id`, `title`, `image_url` |
+| **Offer** | `id`, `product_id`, `marketplace`, `store_name`, `price`, `last_checked_at`, `marketplace_product_url` |
+| **Campaign** | `id`, `name`, `utm_campaign`, `start_at`, `end_at` |
+| **CampaignProduct** | `id`, `campaign_id`, `product_id` |
+| **Link** | `id`, `product_id`, `campaign_id`, `marketplace`, `short_code`, `target_url` |
+| **Click** | `id`, `link_id`, `timestamp`, `referrer`, `user_agent`, `ip_address` |
+
+## Core Flows
+
+### Flow: affiliate click tracking
+
+1. Admin adds a product (Lazada/Shopee references)
+2. System stores product and marketplace offers
+3. Admin creates a campaign (UTMs, start/end) and associates products via `CampaignProduct`
+4. Admin generates an affiliate short link per product + marketplace
+5. Public users open a campaign landing page and click “Buy”
+6. Web calls `GET /go/:short_code`
+7. API validates redirect URL (whitelist check) to prevent open redirect vulnerabilities, records a click event, and redirects to the marketplace URL (with UTMs)
+8. Admin dashboard aggregates click stats
+
+### Flow: price refresh
+
+1. Cron job loads products/offers
+2. For each offer, select the matching marketplace adapter
+3. Fetch latest offer price/store
+4. Update offer and `last_checked_at`
+
+## API Overview
+
+The API is intentionally designed around core domain actions rather than CRUD-style resources.
+
+- **Swagger**: `http://localhost:8080/swagger/index.html`
+- **Health**: `GET /health`
+
+### Key endpoints
+
+- `POST /api/products` – add a product and seed offers
+- `POST /api/campaigns` – create a campaign
+- `POST /api/links` – generate short links
+- `GET /go/:short_code` – track click + redirect
+- `GET /api/dashboard` – analytics summary
+
+See Swagger for the full list of endpoints and schemas.
+
+## Background Jobs
+
+The API process starts a cron-based worker that periodically refreshes offers:
+
+- **Schedule**: configured via `worker.price_refresh_cron` (6-field cron with seconds; default: every 6 hours)
+- **What it does**: refreshes `price`, `store_name`, `marketplace_product_url`, and updates `last_checked_at`
+- **Manual trigger**: `POST /api/worker/refresh-prices`
+
+## Local Development Setup
+
+See [QUICKSTART.md](./QUICKSTART.md) for step-by-step instructions.
+
+### One-liner
 
 ```bash
-# 1. Clone repository
-git clone <repo-url>
-cd <repository-name>
-
-# 2. Initialize project (installs dependencies, starts Docker)
-make init
-
-# 3. Run database migrations
-make mu
-
-# 4. Start project (frontend + backend)
-make start
+make init && make mu && make start
 ```
 
-**Prerequisites**: Go 1.21+, Node.js 18+, Docker & Docker Compose, Make
+### Web API base URL (optional)
 
-**Note**: If you have `golang-migrate` installed, ensure it's compiled with PostgreSQL driver:
-```bash
-go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.16.2
-```
-Or the Makefile will install it automatically when running `make mu`.
-
-### Available Make Commands
+The web app defaults to `http://localhost:8080`. To override locally:
 
 ```bash
-make init          # Initialize project (install deps, setup config, start Docker)
-make mu            # Run database migrations up
-make md            # Run database migrations down (rollback)
-make start         # Start both frontend and backend
-make start-backend # Start backend only
-make start-frontend # Start frontend only
-make stop          # Stop Docker services
-make clean         # Clean up (stop services, remove volumes)
-make test          # Run tests
-make lint          # Run linters
-make swagger       # Generate Swagger docs
-make build         # Build backend binary
-make help          # Show all available commands
+cp apps/web/env.example apps/web/.env.local
 ```
 
-## Project Structure
+## Demo
 
-```
-project/
-├── cmd/
-│   └── api/          # API server entry point
-├── internal/
-│   ├── api/          # HTTP handlers and routes
-│   ├── config/       # Configuration management (Viper wrapper)
-│   ├── database/     # Database connection (GORM, read/write separation)
-│   ├── dto/          # Data Transfer Objects
-│   ├── logger/       # Logger abstraction (Zap wrapper)
-│   ├── model/        # GORM models
-│   ├── repository/   # Data access layer
-│   ├── service/      # Business logic layer
-│   ├── validator/    # Input validation utilities
-│   └── worker/       # Background jobs
-├── migrations/       # SQL migrations
-├── docs/             # Generated Swagger docs
-├── configs/          # Configuration files
-├── apps/
-│   └── web/          # Next.js frontend
-└── pkg/
-    └── adapters/     # Marketplace adapters (Lazada, Shopee, Mock)
+If you have a deployed environment, add:
 
-```
+- **Public site**: `<PUBLIC_URL>`
+- **Admin UI**: `<PUBLIC_URL>/admin` (no authentication required in demo)
+- **Swagger**: `<PUBLIC_URL>/swagger/index.html`
 
-## API Documentation
+**Sample data for testing**:
+- Campaign: `Summer Sale 2025`
+- Product: `Premium Matcha Powder 100g` (available on both Lazada and Shopee)
 
-Swagger documentation is available at `http://localhost:8080/swagger/index.html`
+## Testing & CI
 
-To regenerate Swagger docs: `make swagger`
+- **Unit tests**: `go test ./... -short`
+- **Integration tests** (Postgres required): `go test -tags=integration ./...`
+- **CI**: GitHub Actions runs unit + integration + lint + build (`.github/workflows/ci.yml`)
 
-## Configuration
+## Trade-offs & Assumptions
 
-Configuration is managed via JSON file (`configs/config.json`) with support for environment variable overrides.
+- **Marketplace data**: defaults to **mock fixtures** to keep the project deterministic and easy to run without credentials; real adapters can be enabled/extended later.
+- **Auth**: intentionally skipped to minimize setup friction; production would add session/JWT + RBAC + audit trails.
+- **CTR**: treated as a simplified proxy metric (clicks per generated link) rather than a true impression-based CTR.
+- **Redirect safety**: redirect targets are always resolved from persisted links and validated against a whitelist to prevent open redirect vulnerabilities.
+- **Redis**: provisioned but optional; intended for caching, rate limiting, and precomputed analytics.
 
-Example configuration: `configs/config.example.json`
+## Future Improvements
 
-### Required Environment Variables
+- Real marketplace API integrations with retries, rate limiting, and caching
+- Impression tracking for accurate CTR
+- Conversion and revenue tracking
+- Role-based access control (RBAC) + audit logs
+- Observability: request IDs, structured logs, metrics, tracing
 
-- `DATABASE_WRITE_PASSWORD`: PostgreSQL write password
-
-### Optional Environment Variables
-
-- `CONFIG_PATH`: Path to config.json directory (default: `./configs`)
-- `DATABASE_WRITE_HOST`, `DATABASE_WRITE_PORT`, etc.
-- `SERVER_PORT`: Server port (default: 8080)
-- `WORKER_PRICE_REFRESH_CRON`: Cron schedule (default: `0 */6 * * *`)
-
-## API Endpoints
-
-### Admin Endpoints (Basic Auth Required)
-
-- `POST /api/products` - Add product from URL
-- `GET /api/products/:id/offers` - Get product offers
-- `POST /api/campaigns` - Create campaign
-- `POST /api/links` - Generate affiliate link
-- `GET /api/dashboard` - Get analytics dashboard
-- `POST /api/admin/worker/refresh-prices` - Trigger price refresh
-
-### Public Endpoints
-
-- `GET /api/campaigns/:id/public` - Get public campaign details
-- `GET /go/:short_code` - Redirect affiliate link (tracks click)
-
-## Frontend URLs
-
-- Home: `http://localhost:3000`
-- Admin Products: `http://localhost:3000/admin/products`
-- Admin Campaigns: `http://localhost:3000/admin/campaigns`
-- Admin Dashboard: `http://localhost:3000/admin/dashboard`
-- Public Campaign: `http://localhost:3000/campaign/[campaign-id]`
-
-## Development
-
-See [QUICKSTART.md](./QUICKSTART.md) for detailed development instructions.
-
-**Quick commands**:
-- Backend: `make start-backend` (runs on `http://localhost:8080`)
-- Frontend: `make start-frontend` (runs on `http://localhost:3000`)
-- Migrations: `make mu` (up), `make md` (down)
-
-## Testing
-
-```bash
-# Run all tests
-make test
-
-# Run linters
-make lint
-```
-
-## CI/CD
-
-GitHub Actions workflows:
-
-- **CI**: Runs tests and linters on push/PR
-- **Swagger**: Regenerates Swagger docs on handler changes
-
-## License
-
-MIT

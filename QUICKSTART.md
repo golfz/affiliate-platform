@@ -1,319 +1,200 @@
-# Quick Start Guide - ทดลองใช้โปรเจกต์
+# QUICKSTART (Local Development)
 
-คู่มือนี้จะช่วยให้คุณ run โปรเจกต์ได้อย่างรวดเร็ว
+This guide helps you run the project locally in ~10 minutes.
 
-## Prerequisites (สิ่งที่ต้องเตรียม)
+## Prerequisites
 
-- **Go 1.21+** - [Download](https://go.dev/dl/)
-- **Node.js 18+** - [Download](https://nodejs.org/)
-- **Docker & Docker Compose** - [Download](https://www.docker.com/get-started)
-- **Make** - มักจะติดตั้งมาพร้อมกับ macOS/Linux
+- Go 1.21+
+- Node.js 18+
+- Docker + Docker Compose
+- Make
 
-## Step 0: ตรวจสอบการติดตั้ง (Optional)
-
-ก่อนเริ่มต้น คุณสามารถตรวจสอบว่ามีทุกอย่างพร้อมหรือไม่ด้วย script `CHECK_SETUP.sh`:
+## Step 0 (optional): Preflight check
 
 ```bash
 ./CHECK_SETUP.sh
 ```
 
-Script นี้จะตรวจสอบ:
-- ✅ Prerequisites (Go, Node.js, Docker, Make)
-- ✅ ไฟล์โปรเจกต์ที่จำเป็น (go.mod, package.json)
-- ✅ Configuration files (config.json)
-- ✅ Docker services status
-- ✅ Dependencies (Go modules, Node modules)
-- ✅ CI/CD configuration
-
-**ตัวอย่างผลลัพธ์**:
-```
-🔍 Checking Setup for Jenosize Affiliate Platform...
-==================================================
-
-📦 Prerequisites:
-✓ Go: INSTALLED (go version go1.25.3)
-✓ Node.js: INSTALLED (v25.1.0)
-✓ npm: INSTALLED (11.6.2)
-✓ Docker: INSTALLED (Docker version 28.5.1)
-✓ Docker Compose: INSTALLED (Docker Compose version 2.40.3)
-✓ Make: INSTALLED (GNU Make 3.81)
-
-📁 Project Files:
------------------
-✓ go.mod: EXISTS
-✓ package.json: EXISTS
-⚠ config.json: NOT FOUND (will be created on 'make init')
-✓ Swagger docs: GENERATED
-
-✅ All checks passed! Ready to run.
-```
-
-**หมายเหตุ**: 
-- ⚠️ หมายถึง Warning (ไม่จำเป็นต้องแก้ไขทันที จะถูกจัดการอัตโนมัติ)
-- ✗ หมายถึง Error (ต้องแก้ไขก่อน run)
-- ✓ หมายถึง OK (พร้อมใช้งาน)
-
-ถ้าเห็น warnings เกี่ยวกับ `config.json` หรือ `node_modules` ไม่ต้องกังวล เพราะจะถูกสร้าง/ติดตั้งอัตโนมัติเมื่อรัน `make init`
-
-## Step 1: Clone Repository (ถ้ายังไม่ได้ clone)
-
-```bash
-git clone <repository-url>
-cd <repository-name>
-```
-
-## Step 2: Initialize Project (ครั้งแรกเท่านั้น)
+## Step 1: Initialize (first time only)
 
 ```bash
 make init
 ```
 
-คำสั่งนี้จะทำ:
-- Install Go dependencies (`go mod download`)
-- Install Node.js dependencies (ถ้ามี)
-- สร้าง `configs/config.json` จาก `configs/config.example.json`
-- Start Docker services (PostgreSQL และ Redis)
+What it does:
 
-**หมายเหตุ**: ถ้าเป็นครั้งแรก อาจต้องรอ Docker pull images
+- installs Go modules
+- installs Web deps (`apps/web`)
+- creates `configs/config.json` from `configs/config.example.json` (if missing)
+- starts Docker services (Postgres + Redis)
 
-## Step 3: Run Database Migrations
+## Step 2: Run database migrations
 
 ```bash
 make mu
 ```
 
-คำสั่งนี้จะสร้างตารางทั้งหมดในฐานข้อมูล
+## Step 3 (optional): Configure Web API base URL
 
-## Step 4: Start Backend และ Frontend
+By default the web app calls `http://localhost:8080`. If you want to override it, create `apps/web/.env.local`
+(this file is intentionally ignored by Git) from the template:
 
-### วิธีที่ 1: Start ทั้งหมดพร้อมกัน
+```bash
+cp apps/web/env.example apps/web/.env.local
+```
+
+## Step 4: Start the stack
+
+### Option A: start both API + Web
 
 ```bash
 make start
 ```
 
-คำสั่งนี้จะ start:
-- Backend API ที่ `http://localhost:8080`
-- Frontend Next.js ที่ `http://localhost:3000`
+- API: `http://localhost:8080`
+- Web: `http://localhost:3000`
 
-### วิธีที่ 2: Start แยกกัน (แนะนำสำหรับ debug)
+### Option B (recommended for debugging): start separately
 
-Terminal 1 - Start Backend:
+Terminal 1:
+
 ```bash
 make start-backend
 ```
 
-Terminal 2 - Start Frontend:
+Terminal 2:
+
 ```bash
 make start-frontend
 ```
 
-## Step 7: ทดลองใช้งาน
+## Step 5: Smoke tests
 
-### 7.1 ตรวจสอบ Health Check
+### 5.1 Health check
 
 ```bash
 curl http://localhost:8080/health
 ```
 
-ควรได้ response:
-```json
-{
-  "status": "ok",
-  "timestamp": "2025-01-15T10:00:00Z"
-}
+### 5.2 Swagger
+
+Open:
+
+`http://localhost:8080/swagger/index.html`
+
+### 5.3 Web pages
+
+- Admin Products: `http://localhost:3000/admin/products`
+- Admin Campaigns: `http://localhost:3000/admin/campaigns`
+- Admin Dashboard: `http://localhost:3000/admin/dashboard`
+
+## Step 6: End-to-end flow (API cURL)
+
+All `/api/*` admin endpoints require Basic Auth:
+
+```bash
+AUTH="-u admin:admin123"
 ```
 
-### 7.2 ดู Swagger Documentation
-
-เปิดเบราว์เซอร์:
-```
-http://localhost:8080/swagger/index.html
-```
-
-### 7.3 ทดสอบ Frontend
-
-เปิดเบราว์เซอร์:
-```
-http://localhost:3000
-```
-
-#### Admin Pages (ใช้ Basic Auth: `admin:admin123`)
-- **Products**: `http://localhost:3000/admin/products`
-- **Campaigns**: `http://localhost:3000/admin/campaigns`
-- **Dashboard**: `http://localhost:3000/admin/dashboard`
-
-#### Public Campaign Page
-```
-http://localhost:3000/campaign/[campaign-id]
-```
-
-(สร้าง campaign ใหม่ผ่าน Admin UI หรือ API)
-
-### 7.4 ทดสอบ API Endpoints
-
-#### 1. Add Product (ต้องใช้ Basic Auth)
+### 6.1 Add product (mock adapter will map URLs to fixture data)
 
 ```bash
 curl -X POST http://localhost:8080/api/products \
-  -u admin:admin123 \
+  $AUTH \
   -H "Content-Type: application/json" \
   -d '{
-    "source": "https://www.lazada.co.th/products/example-i123456.html",
-    "sourceType": "url"
+    "source": "https://www.lazada.co.th/products/pdp-i3603170719-s13480882463.html",
+    "sourceType": "url",
+    "lazada_url": "https://www.lazada.co.th/products/pdp-i3603170719-s13480882463.html",
+    "shopee_url": "https://shopee.co.th/liferinger.th/26379553660"
   }'
 ```
 
-#### 2. Get Product Offers
+### 6.2 List products and offers
 
 ```bash
-# แทน PRODUCT_ID ด้วย ID ที่ได้จากคำสั่งก่อนหน้า
-curl -X GET http://localhost:8080/api/products/PRODUCT_ID/offers \
-  -u admin:admin123
+curl http://localhost:8080/api/products $AUTH
 ```
 
-#### 3. Create Campaign
+### 6.3 Create a campaign
 
 ```bash
 curl -X POST http://localhost:8080/api/campaigns \
-  -u admin:admin123 \
+  $AUTH \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Summer Deal 2025",
     "utm_campaign": "summer_2025",
-    "start_at": "2025-06-01T00:00:00Z",
-    "end_at": "2025-08-31T23:59:59Z",
-    "product_ids": ["PRODUCT_ID_HERE"]
+    "start_at": "2026-01-01T00:00:00Z",
+    "end_at": "2026-12-31T23:59:59Z",
+    "product_ids": []
   }'
 ```
 
-#### 4. Get Public Campaign
+### 6.4 Create an affiliate short link
 
 ```bash
-# แทน CAMPAIGN_ID ด้วย ID ที่ได้จากคำสั่งก่อนหน้า
-curl http://localhost:8080/api/campaigns/CAMPAIGN_ID/public
+curl -X POST http://localhost:8080/api/links \
+  $AUTH \
+  -H "Content-Type: application/json" \
+  -d '{
+    "product_id": "<PRODUCT_ID>",
+    "campaign_id": "<CAMPAIGN_ID>",
+    "marketplace": "lazada"
+  }'
 ```
 
-#### 5. Get Dashboard Stats
+### 6.5 Public campaign JSON
 
 ```bash
-curl http://localhost:8080/api/dashboard \
-  -u admin:admin123
+curl http://localhost:8080/api/campaigns/<CAMPAIGN_ID>/public
 ```
 
-## Troubleshooting (แก้ไขปัญหา)
+### 6.6 Trigger price refresh (manual)
 
-### ปัญหา: Database connection failed
-
-**แก้ไข**:
 ```bash
-# ตรวจสอบว่า Docker services running
+curl -X POST http://localhost:8080/api/worker/refresh-prices $AUTH
+```
+
+### 6.7 Dashboard stats
+
+```bash
+curl http://localhost:8080/api/dashboard $AUTH
+```
+
+## Troubleshooting
+
+### Database connection failed
+
+```bash
 docker-compose ps
-
-# ถ้ายังไม่ running ให้ start
 docker-compose up -d
-
-# ตรวจสอบ logs
 docker-compose logs postgres
 ```
 
-### ปัญหา: Port already in use
-
-**แก้ไข**:
-- Backend (8080): ตรวจสอบว่ามี process อื่นใช้ port 8080 หรือไม่
-- Frontend (3000): ตรวจสอบว่ามี process อื่นใช้ port 3000 หรือไม่
+### Port already in use (8080 / 3000)
 
 ```bash
-# macOS/Linux - หา process ที่ใช้ port
 lsof -i :8080
 lsof -i :3000
-
-# Kill process (แทน PID ด้วย process ID)
-kill -9 PID
 ```
 
-### ปัญหา: Go modules not found
+### Migration failed: "unknown driver postgres"
 
-**แก้ไข**:
+The Makefile auto-installs `migrate` with the Postgres driver on `make mu`, but if you previously installed it without tags:
+
 ```bash
-go mod download
-go mod tidy
-```
-
-### ปัญหา: Frontend dependencies not installed
-
-**แก้ไข**:
-```bash
-cd apps/web
-npm install
-```
-
-### ปัญหา: Config file not found
-
-**แก้ไข**:
-```bash
-cp configs/config.example.json configs/config.json
-# แก้ไข configs/config.json ตามความต้องการ
-```
-
-### ปัญหา: Migration failed - "unknown driver postgres"
-
-**สาเหตุ**: `migrate` tool ถูกติดตั้งโดยไม่มี PostgreSQL driver
-
-**แก้ไข**:
-```bash
-# วิธีที่ 1: ลบและติดตั้งใหม่ (แนะนำ)
-rm -f $(go env GOPATH)/bin/migrate
+rm -f "$(go env GOPATH)/bin/migrate"
 go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@v4.16.2
-
-# วิธีที่ 2: ใช้ Makefile (จะติดตั้งอัตโนมัติถ้ายังไม่มี)
 make mu
-
-# ตรวจสอบว่า PATH ถูกต้อง
-echo $PATH | grep -q "$(go env GOPATH)/bin" || export PATH="$(go env GOPATH)/bin:$PATH"
-
-# ทดสอบ
-migrate -version
 ```
 
-**หมายเหตุ**: 
-- Makefile ตรวจสอบและติดตั้ง migrate tool อัตโนมัติเมื่อรัน `make mu`
-- ถ้ายังมีปัญหา ให้ลบ migrate tool เดิมและติดตั้งใหม่ด้วย `-tags 'postgres'`
-- อ่าน `FIX_MIGRATE.md` สำหรับรายละเอียดเพิ่มเติม
-
-## Useful Commands (คำสั่งที่มีประโยชน์)
+## Useful commands
 
 ```bash
-# ดู logs จาก Docker services
-docker-compose logs -f
-
-# Stop Docker services
-make stop
-
-# Clean up (ลบ volumes ด้วย)
-make clean
-
-# Run tests
 make test
-
-# Run linters
 make lint
-
-# Build backend binary
-make build
+make swagger
+make stop
+make clean
 ```
-
-## Next Steps (ขั้นตอนต่อไป)
-
-1. **ทดลองใช้ Admin UI**: ไปที่ `http://localhost:3000/admin/products` เพื่อเพิ่ม products
-2. **สร้าง Campaign**: ไปที่ `http://localhost:3000/admin/campaigns` เพื่อสร้าง campaign
-3. **ดู Analytics**: ไปที่ `http://localhost:3000/admin/dashboard` เพื่อดูสถิติ
-4. **ทดสอบ Public Page**: สร้าง campaign แล้วเปิด public page
-5. **ทดสอบ Redirect**: ใช้ short code จาก campaign เพื่อทดสอบ redirect และ click tracking
-
-## Support (ขอความช่วยเหลือ)
-
-- **ตรวจสอบการติดตั้ง**: รัน `./CHECK_SETUP.sh` เพื่อดูสถานะทั้งหมด
-- **ตรวจสอบ logs**: `docker-compose logs`
-- **ตรวจสอบ Swagger docs**: `http://localhost:8080/swagger/index.html`
-- **อ่าน README.md**: สำหรับรายละเอียดเพิ่มเติม
