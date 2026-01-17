@@ -79,8 +79,8 @@ classDiagram
   class PriceRefreshWorker
   class MarketplaceAdapter {
     <<interface>>
-    +FetchProduct(ctx, source, sourceType)
-    +FetchOffer(ctx, productURL)
+    +FetchProduct(ctx, ref)
+    +FetchOffer(ctx, ref)
     +Marketplace()
   }
 
@@ -98,10 +98,12 @@ classDiagram
   MarketplaceAdapter <|.. ShopeeAdapter : TODO
 ```
 
+Note: the diagram uses a generic `ref` for readability. In code, `FetchProduct` accepts `(source, sourceType)` to support both URL and SKU inputs.
+
 #### How mock works today
 
 - **Data source**: embedded JSON fixtures (`pkg/adapters/mock/fixtures/products.json`)
-- **Selection**: when you submit a Lazada/Shopee URL, the mock adapter maps it to a fixture product (or picks a deterministic/random product from fixtures depending on the code path)
+- **Selection**: selection is deterministic by default (stable mapping from input URL to a fixture record) to keep tests/debug repeatable
 - **Offers**: Lazada/Shopee offers are read from the same fixture record and stored into `offers` with `marketplace_product_url` + `last_checked_at`
 
 This keeps the MVP deterministic and runnable without credentials, while still exercising the full domain flow (campaign → link → redirect → dashboard).
@@ -229,7 +231,7 @@ If you have a deployed environment, add:
 - **Marketplace data**: defaults to **mock fixtures** to keep the project deterministic and easy to run without credentials; real adapters can be enabled/extended later.
 - **Auth**: intentionally skipped to minimize setup friction; production would add session/JWT + RBAC + audit trails.
 - **CTR**: treated as a simplified proxy metric (clicks per generated link) rather than a true impression-based CTR.
-- **Redirect safety**: redirect targets are always resolved from persisted links and validated against a whitelist to prevent open redirect vulnerabilities.
+- **Redirect safety**: redirect targets are always resolved from persisted links and validated against a whitelist of allowed hostnames (e.g. `shopee.co.th`, `lazada.co.th`) to prevent open redirect vulnerabilities.
 - **Redis**: provisioned but optional; intended for caching, rate limiting, and precomputed analytics.
 
 ## Future Improvements
