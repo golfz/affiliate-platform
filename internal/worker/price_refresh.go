@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/robfig/cron/v3"
+
 	"github.com/jonosize/affiliate-platform/internal/config"
 	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/logger"
@@ -12,7 +14,6 @@ import (
 	"github.com/jonosize/affiliate-platform/internal/repository"
 	"github.com/jonosize/affiliate-platform/pkg/adapters"
 	"github.com/jonosize/affiliate-platform/pkg/adapters/mock"
-	"github.com/robfig/cron/v3"
 )
 
 // PriceRefreshWorker handles periodic price refresh

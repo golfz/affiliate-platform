@@ -4,9 +4,10 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/service"
-	"github.com/labstack/echo/v4"
 )
 
 // RedirectHandler handles redirect-related HTTP requests

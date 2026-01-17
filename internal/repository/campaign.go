@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+
 	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/model"
 )

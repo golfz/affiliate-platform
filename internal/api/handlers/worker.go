@@ -3,9 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/worker"
-	"github.com/labstack/echo/v4"
 )
 
 // WorkerHandler handles worker-related HTTP requests

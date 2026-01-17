@@ -3,9 +3,10 @@ package middleware
 import (
 	"crypto/subtle"
 
-	"github.com/jonosize/affiliate-platform/internal/config"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
+
+	"github.com/jonosize/affiliate-platform/internal/config"
 )
 
 // BasicAuth creates a BasicAuth middleware using credentials from config

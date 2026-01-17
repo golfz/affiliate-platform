@@ -1,6 +1,8 @@
 package api
 
 import (
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonosize/affiliate-platform/internal/api/handlers"
 	"github.com/jonosize/affiliate-platform/internal/config"
 	"github.com/jonosize/affiliate-platform/internal/database"
@@ -9,7 +11,6 @@ import (
 	"github.com/jonosize/affiliate-platform/internal/service"
 	"github.com/jonosize/affiliate-platform/internal/worker"
 	"github.com/jonosize/affiliate-platform/pkg/adapters/mock"
-	"github.com/labstack/echo/v4"
 )
 
 // SetupRoutes configures all API routes

@@ -11,15 +11,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/jonosize/affiliate-platform/internal/config"
 	"github.com/jonosize/affiliate-platform/internal/database"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/repository"
 	"github.com/jonosize/affiliate-platform/pkg/adapters/mock"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
 // CampaignIntegrationTestSuite is an integration test suite for CampaignService

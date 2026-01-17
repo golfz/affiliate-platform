@@ -6,10 +6,11 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"
 	"github.com/jonosize/affiliate-platform/internal/service"
-	"github.com/labstack/echo/v4"
 )
 
 // ProductHandler handles product-related HTTP requests

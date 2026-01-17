@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+
 	"github.com/jonosize/affiliate-platform/internal/config"
 	"github.com/jonosize/affiliate-platform/internal/dto"
 	"github.com/jonosize/affiliate-platform/internal/logger"

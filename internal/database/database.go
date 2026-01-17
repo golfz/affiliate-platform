@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jonosize/affiliate-platform/internal/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/jonosize/affiliate-platform/internal/config"
 )
 
 // DB holds both write and read database connections
