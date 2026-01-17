@@ -68,7 +68,7 @@ func (suite *CampaignIntegrationTestSuite) SetupSuite() {
 
 func (suite *CampaignIntegrationTestSuite) TearDownSuite() {
 	if suite.db != nil {
-		suite.db.Close()
+		_ = suite.db.Close() // Ignore error in test cleanup
 	}
 }
 

@@ -22,7 +22,11 @@ func main() {
 	if err := logger.Init("info"); err != nil {
 		panic("failed to initialize logger: " + err.Error())
 	}
-	defer logger.Get().Sync()
+	defer func() {
+		if err := logger.Get().Sync(); err != nil {
+			// Log error but don't fail shutdown
+		}
+	}()
 
 	log := logger.Get()
 	log.Info("Starting database seeding...")
@@ -32,7 +36,11 @@ func main() {
 	if err != nil {
 		log.Fatal("Failed to initialize database", logger.Error(err))
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Error("Error closing database", logger.Error(err))
+		}
+	}()
 
 	// Seed database
 	if err := seed.SeedDatabase(db, cfg, log); err != nil {
