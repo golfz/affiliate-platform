@@ -65,6 +65,62 @@ flowchart LR
 
 Marketplace APIs differ (auth, data models, quotas). The adapter interface lets core logic depend on a stable contract (`FetchProduct`, `FetchOffer`), keeping external changes localized to the adapter package.
 
+### Adapter design (dependencies, mock vs real)
+
+#### Dependency direction
+
+Core business logic depends on the **interface** (`MarketplaceAdapter`), not on concrete marketplace integrations.
+
+```mermaid
+classDiagram
+  direction TB
+
+  class ProductService
+  class PriceRefreshWorker
+  class MarketplaceAdapter {
+    <<interface>>
+    +FetchProduct(ctx, source, sourceType)
+    +FetchOffer(ctx, productURL)
+    +Marketplace()
+  }
+
+  class MockAdapter
+  class LazadaAdapter
+  class ShopeeAdapter
+
+  %% "uses" dependencies
+  ProductService --> MarketplaceAdapter : uses
+  PriceRefreshWorker --> MarketplaceAdapter : uses
+
+  %% "implements" relationships
+  MarketplaceAdapter <|.. MockAdapter
+  MarketplaceAdapter <|.. LazadaAdapter : TODO
+  MarketplaceAdapter <|.. ShopeeAdapter : TODO
+```
+
+#### How mock works today
+
+- **Data source**: embedded JSON fixtures (`pkg/adapters/mock/fixtures/products.json`)
+- **Selection**: when you submit a Lazada/Shopee URL, the mock adapter maps it to a fixture product (or picks a deterministic/random product from fixtures depending on the code path)
+- **Offers**: Lazada/Shopee offers are read from the same fixture record and stored into `offers` with `marketplace_product_url` + `last_checked_at`
+
+This keeps the MVP deterministic and runnable without credentials, while still exercising the full domain flow (campaign → link → redirect → dashboard).
+
+#### How to enable real marketplaces (production path)
+
+Right now the app is wired to use mock adapters by default. To use real integrations:
+
+- **Lazada**:
+  - Provide Lazada Open Platform credentials (app key/secret + access token)
+  - Instantiate `pkg/adapters/lazada` and wire it into the API route setup + worker
+- **Shopee**:
+  - Implement the TODOs in `pkg/adapters/shopee` (partner API) and wire it in the same way
+
+A production-ready approach is to add an **adapter factory** (e.g. `internal/adapters/factory`) that selects implementations based on config/env (mock in dev, real in prod), and reuse the same factory from:
+
+- API bootstrap (`internal/api/router.go`)
+- background worker (`internal/worker/price_refresh.go`)
+
 ## Data Model Overview
 
 ### Core entities
