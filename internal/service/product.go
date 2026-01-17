@@ -34,66 +34,77 @@ func NewProductService(db *database.DB, log logger.Logger) *ProductService {
 	}
 }
 
-// CreateProduct creates a product from URL or SKU
+// CreateProduct creates a product from Lazada and/or Shopee URLs
 func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProductRequest) (*dto.ProductResponse, error) {
-	// Determine source type
-	sourceType := adapters.SourceType(req.SourceType)
-	if sourceType != adapters.SourceTypeURL && sourceType != adapters.SourceTypeSKU {
-		sourceType = adapters.SourceTypeURL // Default to URL
+	if req.LazadaURL == "" && req.ShopeeURL == "" {
+		return nil, fmt.Errorf("at least one URL (Lazada or Shopee) must be provided")
 	}
 
-	// Validate URL if source type is URL
-	var marketplace adapters.Marketplace
-	if sourceType == adapters.SourceTypeURL {
-		var err error
-		marketplace, sourceType, err = validator.ValidateProductURL(req.Source)
-		if err != nil {
-			return nil, fmt.Errorf("invalid product URL: %w", err)
-		}
-	}
-
-	// Get adapter (using mock adapter for now)
+	// Get adapters (using mock adapters for now)
 	lazadaAdapter, shopeeAdapter, err := mock.GetMockAdapters()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get adapters: %w", err)
 	}
 
-	// Fetch product data from adapter
-	var adapter adapters.MarketplaceAdapter
-	var productData *adapters.ProductData
+	var productTitle string
+	var productImageURL string
+	var primaryProductURL string
+	var randomSourceID int // To store the source_id if a random product is selected
 
-	// Try to determine marketplace from source if not already determined
-	if marketplace == "" {
-		// Try both adapters
-		productData, err = lazadaAdapter.FetchProduct(ctx, req.Source, sourceType)
-		if err == nil {
-			adapter = lazadaAdapter
-			marketplace = adapters.MarketplaceLazada
-		} else {
-			productData, err = shopeeAdapter.FetchProduct(ctx, req.Source, sourceType)
-			if err == nil {
-				adapter = shopeeAdapter
-				marketplace = adapters.MarketplaceShopee
-			}
+	// Try to fetch product data from Lazada first if URL is provided
+	if req.LazadaURL != "" {
+		if _, _, err := validator.ValidateProductURL(req.LazadaURL); err != nil {
+			return nil, fmt.Errorf("invalid Lazada URL: %w", err)
 		}
-	} else {
-		// Use determined marketplace
-		if marketplace == adapters.MarketplaceLazada {
-			adapter = lazadaAdapter
+		productData, err := lazadaAdapter.FetchProduct(ctx, req.LazadaURL, adapters.SourceTypeURL)
+		if err == nil && productData != nil {
+			productTitle = productData.Title
+			productImageURL = productData.ImageURL
+			primaryProductURL = productData.MarketplaceProductURL
+			randomSourceID = productData.SourceID // Capture source ID from mock adapter
 		} else {
-			adapter = shopeeAdapter
+			s.logger.Warn("Failed to fetch Lazada product data", logger.Error(err), logger.String("url", req.LazadaURL))
 		}
-		productData, err = adapter.FetchProduct(ctx, req.Source, sourceType)
 	}
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch product data: %w", err)
+	// If no Lazada URL or fetching failed, try Shopee if URL is provided
+	if productTitle == "" && req.ShopeeURL != "" {
+		if _, _, err := validator.ValidateProductURL(req.ShopeeURL); err != nil {
+			return nil, fmt.Errorf("invalid Shopee URL: %w", err)
+		}
+		productData, err := shopeeAdapter.FetchProduct(ctx, req.ShopeeURL, adapters.SourceTypeURL)
+		if err == nil && productData != nil {
+			productTitle = productData.Title
+			productImageURL = productData.ImageURL
+			primaryProductURL = productData.MarketplaceProductURL
+			randomSourceID = productData.SourceID // Capture source ID from mock adapter
+		} else {
+			s.logger.Warn("Failed to fetch Shopee product data", logger.Error(err), logger.String("url", req.ShopeeURL))
+		}
+	}
+
+	// If no specific URL was provided, but we still need a product (e.g., for random selection)
+	if productTitle == "" && req.LazadaURL == "" && req.ShopeeURL == "" {
+		// Call FetchProduct with a dummy URL to trigger random selection in mock adapter
+		// The actual URL doesn't matter here, as mock adapter will pick a random product
+		productData, err := lazadaAdapter.FetchProduct(ctx, "https://www.lazada.co.th/products/random", adapters.SourceTypeURL)
+		if err == nil && productData != nil {
+			productTitle = productData.Title
+			productImageURL = productData.ImageURL
+			primaryProductURL = productData.MarketplaceProductURL
+			randomSourceID = productData.SourceID // Capture source ID from mock adapter
+		} else {
+			s.logger.Error("Failed to fetch random product data", logger.Error(err))
+			return nil, fmt.Errorf("failed to fetch product data from any provided URL or random selection")
+		}
+	} else if productTitle == "" {
+		return nil, fmt.Errorf("failed to fetch product data from any provided URL")
 	}
 
 	// Create product
 	product := &model.Product{
-		Title:    productData.Title,
-		ImageURL: productData.ImageURL,
+		Title:    productTitle,
+		ImageURL: productImageURL,
 	}
 
 	if err := s.productRepo.Create(ctx, product); err != nil {
@@ -108,19 +119,45 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 	hasLazadaURL := req.LazadaURL != ""
 	hasShopeeURL := req.ShopeeURL != ""
 
+	// Check if source_id is available (from FetchProduct)
+	// If yes, use FetchOfferBySourceID to get offers for the random product
+	hasSourceID := randomSourceID > 0
+
 	// Fetch Lazada offer if:
 	// 1. Lazada URL is explicitly provided, OR
-	// 2. Primary marketplace is Lazada and no explicit URLs are provided
-	if hasLazadaURL || (marketplace == adapters.MarketplaceLazada && !hasLazadaURL && !hasShopeeURL) {
-		var lazadaOfferURL string
-		if hasLazadaURL {
-			lazadaOfferURL = req.LazadaURL
+	// 2. No URLs are provided (fetch both platforms)
+	if hasLazadaURL || (!hasLazadaURL && !hasShopeeURL) {
+		var offerData *adapters.OfferData
+		var err error
+
+		// If we have source_id from FetchProduct, use FetchOfferBySourceID
+		// Otherwise, try FetchOffer with URL
+		if hasSourceID {
+			// Cast to MockAdapter to access FetchOfferBySourceID
+			if mockAdapter, ok := lazadaAdapter.(*mock.MockAdapter); ok {
+				offerData, err = mockAdapter.FetchOfferBySourceID(ctx, randomSourceID, adapters.MarketplaceLazada)
+			} else {
+				// Fallback to FetchOffer if not MockAdapter
+				var lazadaOfferURL string
+				if hasLazadaURL {
+					lazadaOfferURL = req.LazadaURL
+				} else {
+					lazadaOfferURL = primaryProductURL
+				}
+				offerData, err = lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
+			}
 		} else {
-			lazadaOfferURL = productData.MarketplaceProductURL
+			// Use URL-based FetchOffer
+			var lazadaOfferURL string
+			if hasLazadaURL {
+				lazadaOfferURL = req.LazadaURL
+			} else {
+				lazadaOfferURL = primaryProductURL
+			}
+			offerData, err = lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
 		}
 
-		offerData, err := lazadaAdapter.FetchOffer(ctx, lazadaOfferURL)
-		if err == nil {
+		if err == nil && offerData != nil {
 			offer := &model.Offer{
 				ProductID:             product.ID,
 				Marketplace:           model.Marketplace(adapters.MarketplaceLazada),
@@ -135,17 +172,39 @@ func (s *ProductService) CreateProduct(ctx context.Context, req dto.CreateProduc
 
 	// Fetch Shopee offer if:
 	// 1. Shopee URL is explicitly provided, OR
-	// 2. Primary marketplace is Shopee and no explicit URLs are provided
-	if hasShopeeURL || (marketplace == adapters.MarketplaceShopee && !hasLazadaURL && !hasShopeeURL) {
-		var shopeeOfferURL string
-		if hasShopeeURL {
-			shopeeOfferURL = req.ShopeeURL
+	// 2. No URLs are provided (fetch both platforms)
+	if hasShopeeURL || (!hasLazadaURL && !hasShopeeURL) {
+		var offerData *adapters.OfferData
+		var err error
+
+		// If we have source_id from FetchProduct, use FetchOfferBySourceID
+		// Otherwise, try FetchOffer with URL
+		if hasSourceID {
+			// Cast to MockAdapter to access FetchOfferBySourceID
+			if mockAdapter, ok := shopeeAdapter.(*mock.MockAdapter); ok {
+				offerData, err = mockAdapter.FetchOfferBySourceID(ctx, randomSourceID, adapters.MarketplaceShopee)
+			} else {
+				// Fallback to FetchOffer if not MockAdapter
+				var shopeeOfferURL string
+				if hasShopeeURL {
+					shopeeOfferURL = req.ShopeeURL
+				} else {
+					shopeeOfferURL = primaryProductURL
+				}
+				offerData, err = shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
+			}
 		} else {
-			shopeeOfferURL = productData.MarketplaceProductURL
+			// Use URL-based FetchOffer
+			var shopeeOfferURL string
+			if hasShopeeURL {
+				shopeeOfferURL = req.ShopeeURL
+			} else {
+				shopeeOfferURL = primaryProductURL
+			}
+			offerData, err = shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
 		}
 
-		offerData, err := shopeeAdapter.FetchOffer(ctx, shopeeOfferURL)
-		if err == nil {
+		if err == nil && offerData != nil {
 			offer := &model.Offer{
 				ProductID:             product.ID,
 				Marketplace:           model.Marketplace(adapters.MarketplaceShopee),

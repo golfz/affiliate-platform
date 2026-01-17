@@ -34,6 +34,7 @@ type ProductData struct {
 	Title                 string `json:"title"`
 	ImageURL              string `json:"image_url"`
 	MarketplaceProductURL string `json:"marketplace_product_url"`
+	SourceID              int    `json:"source_id,omitempty"` // Optional: source_id from mock adapter (0 if not set)
 }
 
 type OfferData struct {

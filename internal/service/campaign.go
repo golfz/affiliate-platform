@@ -18,6 +18,7 @@ type CampaignService struct {
 	campaignRepo *repository.CampaignRepository
 	linkRepo     *repository.LinkRepository
 	offerRepo    *repository.OfferRepository
+	productRepo  *repository.ProductRepository
 	db           *database.DB
 	logger       logger.Logger
 	cfg          config.Config
@@ -29,6 +30,7 @@ func NewCampaignService(db *database.DB, cfg config.Config, log logger.Logger) *
 		campaignRepo: repository.NewCampaignRepository(db),
 		linkRepo:     repository.NewLinkRepository(db),
 		offerRepo:    repository.NewOfferRepository(db),
+		productRepo:  repository.NewProductRepository(db),
 		db:           db,
 		logger:       log,
 		cfg:          cfg,

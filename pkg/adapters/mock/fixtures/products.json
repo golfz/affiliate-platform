@@ -1,34 +1,78 @@
 [
   {
-    "source_id": "MOCK-LAZADA-001",
-    "source_type": "url",
-    "marketplace": "lazada",
+    "source_id": 1,
     "title": "Premium Matcha Powder 100g",
     "image_url": "https://image.makewebeasy.net/makeweb/m_1920x0/aSAKumEHs/Matcha/Matcha_09.jpg",
-    "url": "https://www.lazada.co.th/products/matcha-powder"
+    "platforms": [
+      {
+        "marketplace": "lazada",
+        "store_name": "Matcha Store",
+        "price": 299.00,
+        "url": "https://www.lazada.co.th/products/pdp-i3603170719-s13480882463.html"
+      },
+      {
+        "marketplace": "shopee",
+        "store_name": "Tea Shop",
+        "price": 279.00,
+        "url": "https://shopee.co.th/liferinger.th/26379553660"
+      }
+    ]
   },
   {
-    "source_id": "MOCK-SHOPEE-002",
-    "source_type": "sku",
-    "marketplace": "shopee",
+    "source_id": 2,
     "title": "Coffee Beans",
     "image_url": "https://girls-be-ambitious.com/cdn/shop/products/9_b0eb2e9e-8a73-476e-ba88-3e281aaf0569.jpg",
-    "url": "https://shopee.co.th/coffee-beans"
+    "platforms": [
+      {
+        "marketplace": "lazada",
+        "store_name": "Coffee Store",
+        "price": 480.00,
+        "url": "https://www.lazada.co.th/products/pdp-i5092118872-s23710682098.html"
+      },
+      {
+        "marketplace": "shopee",
+        "store_name": "Coffee Shop",
+        "price": 450.00,
+        "url": "https://shopee.co.th/product/33277039/22311557178"
+      }
+    ]
   },
   {
-    "source_id": "MOCK-LAZADA-003",
-    "source_type": "url",
-    "marketplace": "lazada",
+    "source_id": 3,
     "title": "Mechanical Keyboard",
     "image_url": "https://m.media-amazon.com/images/I/71ZRus2YNcL._AC_UF894,1000_QL80_.jpg",
-    "url": "https://www.lazada.co.th/products/mechanical-keyboard"
+    "platforms": [
+      {
+        "marketplace": "lazada",
+        "store_name": "Tech Store",
+        "price": 1299.00,
+        "url": "https://www.lazada.co.th/products/pdp-i6027282793-s26054207871.html"
+      },
+      {
+        "marketplace": "shopee",
+        "store_name": "Keyboard Shop",
+        "price": 1199.00,
+        "url": "https://shopee.co.th/nuphy_officialshop/43053321601"
+      }
+    ]
   },
   {
-    "source_id": "MOCK-SHOPEE-004",
-    "source_type": "url",
-    "marketplace": "shopee",
+    "source_id": 4,
     "title": "Portable USB-C Charging Cable 2m",
     "image_url": "https://th-live-01.slatic.net/p/ef623b807ba6196b85194a5a1d8e64fc.jpg",
-    "url": "https://shopee.co.th/product/628267390/24952778873"
+    "platforms": [
+      {
+        "marketplace": "lazada",
+        "store_name": "Cable Store",
+        "price": 229.00,
+        "url": "https://www.lazada.co.th/products/pdp-i4883716707-s20530616900.html"
+      },
+      {
+        "marketplace": "shopee",
+        "store_name": "Tech Accessories",
+        "price": 199.00,
+        "url": "https://shopee.co.th/ugreenbygadgetvilla/5675470825"
+      }
+    ]
   }
 ]
